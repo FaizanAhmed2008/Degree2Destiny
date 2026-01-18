@@ -70,7 +70,8 @@ src/
 
 Thanks to:
 - [Mustafa Khan](https://github.com/Mustafa-khan23) (@Mustafa-khan23)
-
+- [Inshra](https://github.com/inshra666) (@inshra666)
+- [Mohammed Arifi](https://github.com/Mohammed-Arifi) (@Mohammed-Arifi)
 
 
 ## License
