@@ -28,7 +28,7 @@ Degree2Destiny is a skill-driven career platform that helps students become job-
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/Degree2Destiny.git
+git clone https://github.com/FaizanAhmed2008/Degree2Destiny.git
 cd Degree2Destiny
 ```
 
