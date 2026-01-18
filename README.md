@@ -68,7 +68,10 @@ src/
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Thanks to:
+- @Mustafa-khan23
+- @Mohammed-Arifi
+
 
 ## License
 
