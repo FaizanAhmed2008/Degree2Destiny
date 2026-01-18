@@ -69,8 +69,8 @@ src/
 ## Contributing
 
 Thanks to:
-- @Mustafa-khan23
-- @Mohammed-Arifi
+- [Mustafa Khan](https://github.com/Mustafa-khan23) (@Mustafa-khan23)
+
 
 
 ## License
