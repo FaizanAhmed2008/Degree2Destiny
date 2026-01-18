@@ -28,7 +28,7 @@ const ThemeToggle: React.FC = () => {
       ) : (
         // Sun icon for light mode
         <svg
-          className="w-5 h-5 text-yellow-500"
+          className="w-5 h-5 text-yellow-500 dark:text-yellow-400"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

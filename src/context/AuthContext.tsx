@@ -10,7 +10,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 
 // User role type
-export type UserRole = 'student' | 'professor' | 'company';
+export type UserRole = 'student' | 'professor' | 'recruiter' | 'company'; // 'company' kept for backward compatibility
 
 // User profile interface
 export interface UserProfile {

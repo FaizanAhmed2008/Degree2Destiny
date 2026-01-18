@@ -4,6 +4,36 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
 
+// Enhanced smooth scroll function with easing
+const smoothScrollTo = (element: HTMLElement, offset: number = 80) => {
+  const elementPosition = element.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.pageYOffset - offset;
+  
+  const startPosition = window.pageYOffset;
+  const distance = offsetPosition - startPosition;
+  const duration = Math.min(Math.abs(distance) * 0.5, 1000); // Max 1 second
+  let start: number | null = null;
+
+  const easeInOutCubic = (t: number): number => {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  };
+
+  const animation = (currentTime: number) => {
+    if (start === null) start = currentTime;
+    const timeElapsed = currentTime - start;
+    const progress = Math.min(timeElapsed / duration, 1);
+    const ease = easeInOutCubic(progress);
+    
+    window.scrollTo(0, startPosition + distance * ease);
+    
+    if (timeElapsed < duration) {
+      requestAnimationFrame(animation);
+    }
+  };
+
+  requestAnimationFrame(animation);
+};
+
 // Landing page with hero section, animations, and About Us
 const Home = () => {
   const router = useRouter();
@@ -22,7 +52,8 @@ const Home = () => {
           router.push('/professor/dashboard');
           break;
         case 'company':
-          router.push('/company/dashboard');
+        case 'recruiter':
+          router.push('/recruiter/dashboard');
           break;
       }
     }
@@ -36,7 +67,19 @@ const Home = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      // Use enhanced smooth scroll with easing
+      if ('requestAnimationFrame' in window) {
+        smoothScrollTo(element, 80);
+      } else {
+        // Fallback for older browsers
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
     }
   };
 
@@ -53,7 +96,7 @@ const Home = () => {
             loop
             muted
             playsInline
-            className="w-full h-full object-cover opacity-20 dark:opacity-10"
+            className="w-full h-full object-cover opacity-30 dark:opacity-20"
             poster="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1920&h=1080&fit=crop"
           >
             <source src="/videos/hero-video.mp4" type="video/mp4" />
@@ -101,8 +144,8 @@ const Home = () => {
 
         {/* Scroll Indicator */}
         <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10 animate-bounce">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          <svg className="w-6 h-6 text-white drop-shadow-lg" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
           </svg>
         </div>
       </section>
@@ -263,8 +306,25 @@ const Home = () => {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">D2D</span>
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center relative">
+                  <img 
+                    src="/logo.svg" 
+                    alt="Degree2Destiny Logo" 
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      // Fallback to gradient div if logo fails to load
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const parent = target.parentElement;
+                      if (parent) {
+                        const fallback = parent.querySelector('.logo-fallback') as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }
+                    }}
+                  />
+                  <div className="logo-fallback w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center hidden absolute inset-0">
+                    <span className="text-white font-bold text-sm">D2D</span>
+                  </div>
                 </div>
                 <h3 className="text-white font-bold text-lg">Degree2Destiny</h3>
               </div>

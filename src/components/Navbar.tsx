@@ -2,11 +2,13 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import ProfileDropdown from './ProfileDropdown';
+import { useTheme } from '../context/ThemeContext';
 
 // Navigation bar component with modern design
 const Navbar: React.FC = () => {
   const { currentUser, userProfile } = useAuth();
   const router = useRouter();
+  const { theme } = useTheme();
 
   const getNavLinks = () => {
     if (!userProfile) return [];
@@ -25,10 +27,12 @@ const Navbar: React.FC = () => {
           { name: 'Profile', path: '/professor/profile' },
         ];
       case 'company':
+      case 'recruiter':
         return [
-          { name: 'Dashboard', path: '/company/dashboard' },
-          { name: 'Candidates', path: '/company/dashboard#candidates' },
-          { name: 'Profile', path: '/company/profile' },
+          { name: 'Dashboard', path: '/recruiter/dashboard' },
+          { name: 'Candidates', path: '/recruiter/dashboard#candidates' },
+          { name: 'Messages', path: '/recruiter/messages' },
+          { name: 'Profile', path: '/recruiter/profile' },
         ];
       default:
         return [];
@@ -43,28 +47,75 @@ const Navbar: React.FC = () => {
     { name: 'Home', path: '/', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
     { name: 'About', path: '/#about', action: () => {
       const element = document.getElementById('about');
-      if (element) element.scrollIntoView({ behavior: 'smooth' });
+      if (element) {
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
     }},
     { name: 'Features', path: '/#features', action: () => {
       const element = document.getElementById('features');
-      if (element) element.scrollIntoView({ behavior: 'smooth' });
+      if (element) {
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
     }},
   ];
 
   return (
-    <nav className={`${isLandingPage ? 'bg-transparent absolute top-0 left-0 right-0' : 'bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm'} transition-colors duration-200 sticky top-0 z-50`}>
+    <nav className={`${
+      isLandingPage 
+        ? `absolute top-0 left-0 right-0 ${
+            theme === 'dark' 
+              ? 'bg-transparent' 
+              : 'bg-black/20 backdrop-blur-md'
+          }`
+        : 'bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm'
+    } transition-colors duration-200 sticky top-0 z-50`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           {/* Logo and Navigation */}
           <div className="flex items-center space-x-8">
             <button
-              onClick={() => router.push(currentUser ? (userProfile?.role === 'student' ? '/student/dashboard' : userProfile?.role === 'professor' ? '/professor/dashboard' : '/company/dashboard') : '/')}
-              className="flex items-center space-x-2"
+              onClick={() => router.push(currentUser ? (userProfile?.role === 'student' ? '/student/dashboard' : userProfile?.role === 'professor' ? '/professor/dashboard' : userProfile?.role === 'recruiter' || userProfile?.role === 'company' ? '/recruiter/dashboard' : '/') : '/')}
+              className="flex items-center space-x-2 group"
             >
-              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">D2D</span>
+              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 group-hover:scale-105 relative">
+                <img 
+                  src="/file.svg" 
+                  alt="Degree2Destiny Logo" 
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    // Fallback to gradient div if logo fails to load
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const parent = target.parentElement;
+                    if (parent) {
+                      const fallback = parent.querySelector('.logo-fallback') as HTMLElement;
+                      if (fallback) fallback.style.display = 'flex';
+                    }
+                  }}
+                />
+                <div className="logo-fallback w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center hidden absolute inset-0">
+                  <span className="text-white font-bold text-sm">D2D</span>
+                </div>
               </div>
-              <h1 className={`text-xl font-bold ${isLandingPage ? 'text-white' : 'text-gray-900 dark:text-white'}`}>Degree2Destiny</h1>
+              <h1 className={`text-xl font-bold transition-colors ${
+                isLandingPage 
+                  ? theme === 'dark' 
+                    ? 'text-white' 
+                    : 'text-white drop-shadow-md'
+                  : 'text-gray-900 dark:text-white'
+              }`}>Degree2Destiny</h1>
             </button>
             
             {/* Navigation Links */}
@@ -74,7 +125,11 @@ const Navbar: React.FC = () => {
                   <button
                     key={link.path}
                     onClick={link.action}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-colors text-white hover:bg-white/10"
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      theme === 'dark' 
+                        ? 'text-white hover:bg-white/10' 
+                        : 'text-white drop-shadow-md hover:bg-white/20'
+                    }`}
                   >
                     {link.name}
                   </button>
@@ -108,10 +163,12 @@ const Navbar: React.FC = () => {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => router.push('/login')}
-                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 text-sm font-medium transition-colors rounded-lg ${
                     isLandingPage 
-                      ? 'text-white hover:bg-white/10' 
-                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      ? theme === 'dark'
+                        ? 'text-white hover:bg-white/10'
+                        : 'text-white drop-shadow-lg font-semibold hover:bg-white/25'
+                      : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >
                   Login
@@ -120,7 +177,9 @@ const Navbar: React.FC = () => {
                   onClick={() => router.push('/register')}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                     isLandingPage
-                      ? 'bg-white text-indigo-600 hover:bg-gray-100'
+                      ? theme === 'dark'
+                        ? 'bg-white text-indigo-600 hover:bg-gray-100 drop-shadow-lg'
+                        : 'bg-white text-indigo-600 hover:bg-gray-100 drop-shadow-lg'
                       : 'text-white bg-indigo-600 dark:bg-indigo-700 hover:bg-indigo-700 dark:hover:bg-indigo-600'
                   }`}
                 >

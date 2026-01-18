@@ -37,13 +37,14 @@ const Register = () => {
       // Redirect to appropriate dashboard after registration
       switch (role) {
         case 'student':
-          router.push('/student/dashboard');
+          router.push('/student/onboarding');
           break;
         case 'professor':
           router.push('/professor/dashboard');
           break;
+        case 'recruiter':
         case 'company':
-          router.push('/company/dashboard');
+          router.push('/recruiter/dashboard');
           break;
       }
     } catch (err: any) {
@@ -121,8 +122,9 @@ const Register = () => {
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
               >
                 <option value="student">Student</option>
-                <option value="professor">Professor</option>
-                <option value="company">Company / Recruiter</option>
+                <option value="professor">Professor / Mentor</option>
+                <option value="recruiter">Recruiter / HR</option>
+                <option value="company">Company (Legacy)</option>
               </select>
             </div>
             <button

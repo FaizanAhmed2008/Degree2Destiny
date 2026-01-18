@@ -110,20 +110,46 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
     };
 
     setMessages((prev) => [...prev, userMessage]);
+    const currentInput = input;
     setInput('');
     setIsTyping(true);
 
-    // Simulate AI thinking time
-    setTimeout(() => {
+    try {
+      // Try to use AI service, fallback to rule-based if fails
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentInput,
+          role,
+          contextData: {},
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const aiResponse: Message = {
+          id: (Date.now() + 1).toString(),
+          text: data.response || getAIResponse(currentInput),
+          sender: 'ai',
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, aiResponse]);
+      } else {
+        throw new Error('AI service unavailable');
+      }
+    } catch (error) {
+      // Fallback to rule-based responses
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: getAIResponse(input),
+        text: getAIResponse(currentInput),
         sender: 'ai',
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
+    } finally {
       setIsTyping(false);
-    }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

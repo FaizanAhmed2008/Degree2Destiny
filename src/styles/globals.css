@@ -93,9 +93,28 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Smooth scrolling */
+/* Enhanced smooth scrolling with better performance */
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 80px; /* Account for fixed navbar */
+}
+
+/* Smooth scroll with custom easing */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  * {
+    scroll-behavior: inherit;
+  }
+}
+
+/* Performance optimization for smooth scrolling */
+@supports (scroll-behavior: smooth) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 /* Custom scrollbar */
@@ -118,4 +137,80 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Performance optimizations */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* GPU acceleration for smooth animations */
+.animate-fade-in-up,
+.animate-fade-in,
+.animate-slide-in,
+.animate-fade-in-delay,
+.animate-fade-in-delay-2,
+.animate-fade-in-delay-3 {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Logo styling for consistent rendering */
+img[src="/logo.svg"] {
+  filter: brightness(1);
+  transition: filter 0.2s ease;
+}
+
+.dark img[src="/logo.svg"] {
+  filter: brightness(1.1);
+}
+
+/* Ensure proper contrast for all interactive elements */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid #4F46E5;
+  outline-offset: 2px;
+}
+
+.dark button:focus-visible,
+.dark a:focus-visible {
+  outline-color: #818CF8;
+}
+
+/* Improve text rendering */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+/* Ensure proper z-index layering */
+nav {
+  z-index: 50;
+}
+
+/* Video container optimization */
+video {
+  object-fit: cover;
+  will-change: opacity;
 }
