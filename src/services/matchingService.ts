@@ -36,14 +36,14 @@ export async function matchStudentsToJobDescription(
       }
       
       if (filters?.verifiedOnly) {
-        const hasVerifiedSkills = profile.skills.some(
+        const hasVerifiedSkills = (profile.skills || []).some(
           s => s.verificationStatus === 'verified'
         );
         if (!hasVerifiedSkills) return;
       }
       
       if (filters?.preferredRoles && filters.preferredRoles.length > 0) {
-        const matchesRole = profile.preferredRoles.some(
+        const matchesRole = (profile.preferredRoles || []).some(
           role => filters.preferredRoles!.some(pr => 
             role.toLowerCase().includes(pr.toLowerCase()) || 
             pr.toLowerCase().includes(role.toLowerCase())
@@ -54,7 +54,7 @@ export async function matchStudentsToJobDescription(
       
       students.push({
         id: profile.uid,
-        skills: profile.skills.map(s => ({
+        skills: (profile.skills || []).map(s => ({
           name: s.name,
           score: s.score,
         })),
@@ -81,7 +81,7 @@ export async function matchStudentsToJobDescription(
       
       // Calculate skill matches
       const skillMatches: { [skill: string]: number } = {};
-      student.skills.forEach(skill => {
+      (student.skills || []).forEach(skill => {
         skillMatches[skill.name] = skill.score;
       });
       
@@ -90,7 +90,7 @@ export async function matchStudentsToJobDescription(
         matchScore: match.matchScore,
         reasons: match.reasons,
         skillMatches,
-        recommendedFor: student.profile.preferredRoles,
+        recommendedFor: student.profile.preferredRoles || [],
       };
     }).sort((a, b) => b.matchScore - a.matchScore);
   } catch (error) {
@@ -129,14 +129,14 @@ export async function findMatchingStudents(
       
       // Check verified skills
       if (criteria.verifiedOnly) {
-        const hasVerified = profile.skills.some(s => s.verificationStatus === 'verified');
+        const hasVerified = (profile.skills || []).some(s => s.verificationStatus === 'verified');
         if (!hasVerified) matches = false;
       }
       
       // Check skills
       if (criteria.skills && criteria.skills.length > 0) {
         const hasRequiredSkills = criteria.skills.some(skillName => {
-          const skill = profile.skills.find(s => 
+          const skill = (profile.skills || []).find(s => 
             s.name.toLowerCase().includes(skillName.toLowerCase())
           );
           return skill && skill.score >= (criteria.minScore || 60);
@@ -147,14 +147,14 @@ export async function findMatchingStudents(
       // Check job type
       if (criteria.jobType && criteria.jobType.length > 0) {
         const matchesJobType = criteria.jobType.some(jt => 
-          profile.jobType.includes(jt as any)
+          (profile.jobType || []).includes(jt as any)
         );
         if (!matchesJobType) matches = false;
       }
       
       // Check preferred roles
       if (criteria.preferredRoles && criteria.preferredRoles.length > 0) {
-        const matchesRole = profile.preferredRoles.some(role => 
+        const matchesRole = (profile.preferredRoles || []).some(role => 
           criteria.preferredRoles!.some(pr => 
             role.toLowerCase().includes(pr.toLowerCase())
           )
@@ -199,7 +199,8 @@ export async function recommendStudentsToRecruiter(
       const profile = doc.data() as StudentProfile;
       // Filter out already shortlisted
       const recruiterData = recruiterDoc.data() as RecruiterProfile;
-      if (!recruiterData.shortlistedCandidates.includes(profile.uid)) {
+      const shortlisted = recruiterData.shortlistedCandidates || [];
+      if (!shortlisted.includes(profile.uid)) {
         students.push(profile);
       }
     });

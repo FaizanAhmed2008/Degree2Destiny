@@ -77,7 +77,7 @@ const ProfessorProfile = () => {
                     Member Since
                   </label>
                   <p className="text-gray-900 dark:text-white">
-                    {userProfile.createdAt
+                    {userProfile.createdAt && typeof userProfile.createdAt.toDate === 'function'
                       ? new Date(userProfile.createdAt.toDate()).toLocaleDateString()
                       : 'Recently'}
                   </p>

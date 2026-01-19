@@ -1,13 +1,21 @@
 // AI Service for Gemini Integration
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(
-  process.env.NEXT_PUBLIC_GEMINI_API_KEY || ''
-);
+// Initialize Gemini AI with error handling
+let genAI: GoogleGenerativeAI | null = null;
+let model: any = null;
 
-// Get the generative model
-const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+try {
+  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  if (apiKey && apiKey.trim() !== '') {
+    genAI = new GoogleGenerativeAI(apiKey);
+    model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  } else {
+    console.warn('NEXT_PUBLIC_GEMINI_API_KEY is not set. AI features will use fallback responses.');
+  }
+} catch (error) {
+  console.error('Error initializing Gemini AI:', error);
+}
 
 export interface AIPromptContext {
   role: 'student' | 'professor' | 'recruiter';
@@ -54,6 +62,9 @@ Provide a JSON response with:
 Format your response as valid JSON only, no markdown.`;
 
   try {
+    if (!model) {
+      throw new Error('Gemini AI model not initialized');
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -112,6 +123,9 @@ Provide a JSON array of learning items, each with:
 Format as valid JSON array only.`;
 
   try {
+    if (!model) {
+      throw new Error('Gemini AI model not initialized');
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -158,6 +172,9 @@ Provide constructive feedback in JSON format:
 Format as valid JSON only.`;
 
   try {
+    if (!model) {
+      throw new Error('Gemini AI model not initialized');
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -210,6 +227,9 @@ For each student, provide:
 Format as JSON array.`;
 
   try {
+    if (!model) {
+      throw new Error('Gemini AI model not initialized');
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -252,6 +272,9 @@ Provide:
 Format as JSON.`;
 
   try {
+    if (!model) {
+      throw new Error('Gemini AI model not initialized');
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -295,11 +318,22 @@ ${JSON.stringify(context.data, null, 2)}
 Provide a helpful, concise response (2-4 sentences).`;
 
   try {
+    if (!model) {
+      // Return helpful fallback message if Gemini is not configured
+      return 'I apologize, but the AI assistant is not fully configured. Please ensure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables. For now, I can help with basic questions about the platform.';
+    }
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in AI chat:', error);
-    return 'I apologize, but I encountered an error. Please try again.';
+    // Provide more helpful error messages
+    if (error.message?.includes('API_KEY')) {
+      return 'I apologize, but there was an issue with the AI service configuration. Please check your API key settings.';
+    }
+    if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+      return 'I apologize, but the AI service is currently experiencing high demand. Please try again in a moment.';
+    }
+    return 'I apologize, but I encountered an error. Please try again or contact support if the issue persists.';
   }
 }

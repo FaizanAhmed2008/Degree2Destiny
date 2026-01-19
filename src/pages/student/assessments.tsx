@@ -53,7 +53,6 @@ const StudentAssessments = () => {
           assessmentId: selectedAssessment.id,
           studentId: currentUser.uid,
           content: submissionContent,
-          status: 'submitted',
         }
       );
       alert('Assessment submitted successfully!');
@@ -87,8 +86,8 @@ const StudentAssessments = () => {
 
   // Get all assessments from all skills
   const allAssessments: Assessment[] = [];
-  profile.skills.forEach(skill => {
-    skill.assessments.forEach(assessment => {
+  (profile.skills || []).forEach(skill => {
+    (skill.assessments || []).forEach(assessment => {
       allAssessments.push(assessment);
     });
   });

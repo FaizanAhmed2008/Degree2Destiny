@@ -73,17 +73,28 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onImprove, onVerify }) => 
         <div className="mb-4">
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Proof Links:</p>
           <div className="flex flex-wrap gap-2">
-            {skill.proofLinks.slice(0, 3).map((link, idx) => (
-              <a
-                key={idx}
-                href={link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
-              >
-                {new URL(link).hostname}
-              </a>
-            ))}
+            {skill.proofLinks.slice(0, 3).map((link, idx) => {
+              try {
+                const url = new URL(link);
+                return (
+                  <a
+                    key={idx}
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                  >
+                    {url.hostname}
+                  </a>
+                );
+              } catch {
+                return (
+                  <span key={idx} className="text-xs text-gray-500 dark:text-gray-400">
+                    {link.length > 30 ? link.substring(0, 30) + '...' : link}
+                  </span>
+                );
+              }
+            })}
           </div>
         </div>
       )}

@@ -80,13 +80,13 @@ const RecruiterDashboard = () => {
       filtered = filtered.filter(c =>
         c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.displayName && c.displayName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        c.preferredRoles.some(r => r.toLowerCase().includes(searchTerm.toLowerCase()))
+        (c.preferredRoles && Array.isArray(c.preferredRoles) && c.preferredRoles.some(r => r.toLowerCase().includes(searchTerm.toLowerCase())))
       );
     }
 
     if (selectedSkills.length > 0) {
       filtered = filtered.filter(c =>
-        selectedSkills.some(skill =>
+        c.skills && Array.isArray(c.skills) && selectedSkills.some(skill =>
           c.skills.some(s => s.name.toLowerCase().includes(skill.toLowerCase()) && s.score >= 60)
         )
       );
@@ -94,7 +94,7 @@ const RecruiterDashboard = () => {
 
     if (jobTypeFilter.length > 0) {
       filtered = filtered.filter(c =>
-        jobTypeFilter.some(jt => c.jobType.includes(jt as any))
+        c.jobType && Array.isArray(c.jobType) && jobTypeFilter.some(jt => c.jobType.includes(jt as any))
       );
     }
 
@@ -343,8 +343,8 @@ const CandidateCard: React.FC<{
   onInterviewRequest: () => void;
   onViewProfile: () => void;
 }> = ({ candidate, isShortlisted, onShortlist, onInterviewRequest, onViewProfile }) => {
-  const verifiedSkillsCount = candidate.skills.filter(s => s.verificationStatus === 'verified').length;
-  const topSkills = candidate.skills.sort((a, b) => b.score - a.score).slice(0, 3);
+  const verifiedSkillsCount = (candidate.skills || []).filter(s => s.verificationStatus === 'verified').length;
+  const topSkills = (candidate.skills || []).sort((a, b) => b.score - a.score).slice(0, 3);
 
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-all hover:shadow-lg ${
@@ -356,7 +356,7 @@ const CandidateCard: React.FC<{
             {candidate.displayName || candidate.email.split('@')[0]}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">{candidate.email}</p>
-          {candidate.preferredRoles.length > 0 && (
+          {candidate.preferredRoles && Array.isArray(candidate.preferredRoles) && candidate.preferredRoles.length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {candidate.preferredRoles.slice(0, 2).map((role, idx) => (
                 <span key={idx} className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded">

@@ -82,7 +82,7 @@ const ProfessorDashboard = () => {
       if (!studentDoc.exists()) return;
 
       const studentData = studentDoc.data() as StudentProfile;
-      const updatedSkills = studentData.skills.map(skill => {
+      const updatedSkills = (studentData.skills || []).map(skill => {
         if (skill.id === skillId) {
           return {
             ...skill,
@@ -150,11 +150,12 @@ const ProfessorDashboard = () => {
         
         if (studentDoc.exists()) {
           const studentData = studentDoc.data() as StudentProfile;
-          const updatedSkills = studentData.skills.map(skill => {
-            const assessment = skill.assessments.find(a => a.id === selectedSubmission.assessmentId);
+          const updatedSkills = (studentData.skills || []).map(skill => {
+            const assessments = skill.assessments || [];
+            const assessment = assessments.find(a => a.id === selectedSubmission.assessmentId);
             if (assessment) {
               // Update assessment
-              const updatedAssessments = skill.assessments.map(a => 
+              const updatedAssessments = assessments.map(a => 
                 a.id === assessment.id 
                   ? { ...a, status: 'evaluated', score, submission: { ...selectedSubmission, feedback, score } }
                   : a
@@ -408,8 +409,8 @@ const StudentDetailsPanel: React.FC<{
 }> = ({ student, onVerifySkill, onReviewSubmission, onClose }) => {
   const pendingSubmissions: AssessmentSubmission[] = [];
   
-  student.skills.forEach(skill => {
-    skill.assessments.forEach(assessment => {
+  (student.skills || []).forEach(skill => {
+    (skill.assessments || []).forEach(assessment => {
       if (assessment.submission && assessment.status === 'submitted') {
         pendingSubmissions.push(assessment.submission);
       }
@@ -433,7 +434,7 @@ const StudentDetailsPanel: React.FC<{
       <div className="mb-4">
         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Skills</h4>
         <div className="space-y-2">
-          {student.skills.map(skill => (
+          {(student.skills || []).map(skill => (
             <div key={skill.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.name}</span>
@@ -503,11 +504,11 @@ const SubmissionReviewModal: React.FC<{
         .find(a => a.id === submission.assessmentId);
 
       if (assessment) {
-        const aiFeedback = await generateProfessorFeedback({
-          content: submission.content,
-          assessmentTitle: assessment.title,
-          studentSkillLevel: 'intermediate', // Could be derived from student's skill level
-        });
+      const aiFeedback = await generateProfessorFeedback({
+        content: submission.content || '',
+        assessmentTitle: assessment?.title || 'Assessment',
+        studentSkillLevel: 'intermediate', // Could be derived from student's skill level
+      });
 
         setFeedback(aiFeedback.feedback);
         setScore(aiFeedback.score);

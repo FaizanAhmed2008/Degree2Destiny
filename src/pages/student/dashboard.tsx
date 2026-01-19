@@ -43,6 +43,7 @@ const StudentDashboard = () => {
         // Generate insights if not available or stale
         if (!studentProfile.aiInsights || 
             (studentProfile.aiInsights.lastAnalyzed && 
+             typeof studentProfile.aiInsights.lastAnalyzed.toMillis === 'function' &&
              Date.now() - studentProfile.aiInsights.lastAnalyzed.toMillis() > 7 * 24 * 60 * 60 * 1000)) {
           // Generate insights in background
           generateStudentInsights(currentUser.uid).catch(console.error);
@@ -95,14 +96,14 @@ const StudentDashboard = () => {
     return null; // Redirecting
   }
 
-  const filteredSkills = profile.skills.filter((skill) =>
+  const filteredSkills = (profile.skills || []).filter((skill) =>
     skill.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     skill.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const skillsNeedingImprovement = profile.skills.filter((skill) => skill.score < 70);
-  const topSkills = profile.skills.filter((skill) => skill.score >= 80);
-  const verifiedSkills = profile.skills.filter((skill) => skill.verificationStatus === 'verified');
+  const skillsNeedingImprovement = (profile.skills || []).filter((skill) => skill.score < 70);
+  const topSkills = (profile.skills || []).filter((skill) => skill.score >= 80);
+  const verifiedSkills = (profile.skills || []).filter((skill) => skill.verificationStatus === 'verified');
 
   // Prepare chart data for readiness trend (mock for now)
   const readinessTrend = [
@@ -122,7 +123,7 @@ const StudentDashboard = () => {
           {/* Welcome Section */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Welcome back, {profile.displayName || userProfile?.email.split('@')[0] || 'Student'}! 👋
+              Welcome back, {profile.displayName || userProfile?.email?.split('@')[0] || 'Student'}! 👋
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
               Track your progress and improve your skills to reach your career goals.
@@ -318,7 +319,7 @@ const StudentDashboard = () => {
               </div>
 
               {/* Career Goals */}
-              {profile.preferredRoles && profile.preferredRoles.length > 0 && (
+              {profile.preferredRoles && Array.isArray(profile.preferredRoles) && profile.preferredRoles.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Career Goals</h3>
                   <div className="space-y-2">

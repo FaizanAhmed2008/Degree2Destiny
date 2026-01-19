@@ -411,7 +411,7 @@ const Step3Projects: React.FC<{
         description: projectDesc,
         technologies: projectTech.split(',').map(t => t.trim()).filter(Boolean),
         githubUrl: projectGithub || undefined,
-        startDate: new Date(),
+        startDate: new Date() as any,
         skillsDemonstrated: [],
       };
       setFormData({

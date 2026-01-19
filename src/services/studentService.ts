@@ -163,10 +163,12 @@ export async function submitAssessment(
       
       // Find and update the assessment
       for (const skill of skills) {
-        const assessmentIndex = skill.assessments.findIndex(a => a.id === assessmentId);
+        const assessments = skill.assessments || [];
+        const assessmentIndex = assessments.findIndex(a => a.id === assessmentId);
         if (assessmentIndex >= 0) {
-          skill.assessments[assessmentIndex].status = 'submitted';
-          skill.assessments[assessmentIndex].submission = submissionData;
+          assessments[assessmentIndex].status = 'submitted';
+          assessments[assessmentIndex].submission = submissionData;
+          skill.assessments = assessments;
           
           await saveStudentSkill(studentId, skill);
           break;
@@ -188,17 +190,17 @@ export async function generateStudentInsights(studentId: string): Promise<void> 
     if (!studentProfile) throw new Error('Student not found');
     
     const insights = await analyzeStudentSkills({
-      skills: studentProfile.skills.map(s => ({
+      skills: (studentProfile.skills || []).map(s => ({
         name: s.name,
         score: s.score,
         category: s.category,
       })),
-      projects: studentProfile.projects.map(p => ({
+      projects: (studentProfile.projects || []).map(p => ({
         title: p.title,
-        technologies: p.technologies,
+        technologies: p.technologies || [],
       })),
-      careerInterests: studentProfile.careerInterests,
-      preferredRoles: studentProfile.preferredRoles,
+      careerInterests: studentProfile.careerInterests || [],
+      preferredRoles: studentProfile.preferredRoles || [],
     });
     
     // Generate learning roadmap
