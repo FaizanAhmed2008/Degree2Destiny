@@ -47,6 +47,12 @@ export interface StudentProfile extends UserProfile {
   // Job Readiness
   jobReadinessScore: number;
   jobReadinessLevel: JobReadinessLevel;
+  // Mock evaluation scores (40-100) - used for Destiny scoring dashboards
+  // These can be randomly generated and persisted for analytics/graphs
+  aptitudeScore?: number;
+  technicalScore?: number;
+  communicationScore?: number;
+  overallScore?: number;
   // AI Insights
   aiInsights?: AIInsights;
   // Professor Assignment

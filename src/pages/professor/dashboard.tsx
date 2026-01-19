@@ -46,13 +46,13 @@ const ProfessorDashboard = () => {
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
-      student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.displayName && student.displayName.toLowerCase().includes(searchTerm.toLowerCase()));
+      (student.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || // Add optional chaining and default empty string
+      (student.displayName?.toLowerCase().includes(searchTerm.toLowerCase())); // Add optional chaining
     
     const matchesFilter = 
       filterStatus === 'all' ||
-      (filterStatus === 'needs-attention' && student.jobReadinessScore < 60) ||
-      (filterStatus === 'ready' && student.jobReadinessScore >= 80);
+      (filterStatus === 'needs-attention' && (student.jobReadinessScore ?? 0) < 60) || // Use nullish coalescing
+      (filterStatus === 'ready' && (student.jobReadinessScore ?? 0) >= 80); // Use nullish coalescing
 
     return matchesSearch && matchesFilter;
   });
@@ -370,6 +370,8 @@ const StudentCard: React.FC<{
   student: StudentProfile;
   onView: () => void;
 }> = ({ student, onView }) => {
+  const displayScore = student.jobReadinessScore ?? 0; // Provide a default score
+
   return (
     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer" onClick={onView}>
       <div className="flex items-center justify-between mb-3">
@@ -378,22 +380,22 @@ const StudentCard: React.FC<{
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{student.email}</p>
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-          student.jobReadinessScore >= 80
+          displayScore >= 80
             ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
-            : student.jobReadinessScore >= 60
+            : displayScore >= 60
             ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
             : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
         }`}>
-          {student.jobReadinessScore}%
+          {displayScore}%
         </span>
       </div>
       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
         <div
           className={`h-2 rounded-full ${
-            student.jobReadinessScore >= 80 ? 'bg-green-500' :
-            student.jobReadinessScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+            displayScore >= 80 ? 'bg-green-500' :
+            displayScore >= 60 ? 'bg-yellow-500' : 'bg-red-500'
           }`}
-          style={{ width: `${student.jobReadinessScore}%` }}
+          style={{ width: `${displayScore}%` }}
         />
       </div>
     </div>
@@ -409,8 +411,8 @@ const StudentDetailsPanel: React.FC<{
 }> = ({ student, onVerifySkill, onReviewSubmission, onClose }) => {
   const pendingSubmissions: AssessmentSubmission[] = [];
   
-  (student.skills || []).forEach(skill => {
-    (skill.assessments || []).forEach(assessment => {
+  (student.skills || []).forEach(skill => { // Ensure skills array exists
+    (skill.assessments || []).forEach(assessment => { // Ensure assessments array exists
       if (assessment.submission && assessment.status === 'submitted') {
         pendingSubmissions.push(assessment.submission);
       }
@@ -428,17 +430,17 @@ const StudentDetailsPanel: React.FC<{
 
       <div className="mb-4">
         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{student.displayName || student.email}</h4>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Readiness: {student.jobReadinessScore}%</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Readiness: {(student.jobReadinessScore ?? 0)}%</p> // Default to 0
       </div>
 
       <div className="mb-4">
         <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Skills</h4>
         <div className="space-y-2">
-          {(student.skills || []).map(skill => (
+          {(student.skills || []).map(skill => ( // Ensure skills array exists
             <div key={skill.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
               <div className="flex justify-between items-center mb-1">
                 <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.name}</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">{skill.score}%</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">{(skill.score ?? 0)}%</span> // Default to 0
               </div>
               {skill.verificationStatus === 'pending' && (
                 <div className="flex gap-2 mt-2">
@@ -499,8 +501,8 @@ const SubmissionReviewModal: React.FC<{
     setAiGenerating(true);
     try {
       // Find the assessment
-      const assessment = student.skills
-        .flatMap(s => s.assessments)
+      const assessment = (student.skills || []) // Ensure skills array exists
+        .flatMap(s => s.assessments || []) // Ensure assessments array exists
         .find(a => a.id === submission.assessmentId);
 
       if (assessment) {

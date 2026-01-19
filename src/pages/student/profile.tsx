@@ -3,12 +3,45 @@ import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
 import { useRouter } from 'next/router';
+import { saveStudentProfile } from '../../services/studentService';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../../firebase/firebaseConfig';
 
 const StudentProfile = () => {
   const { userProfile, currentUser } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(userProfile?.displayName || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleToggleEdit = async () => {
+    if (!isEditing) {
+      // Enter edit mode
+      setIsEditing(true);
+      return;
+    }
+
+    if (!currentUser) return;
+    setSaving(true);
+    try {
+      // Update student profile document in students collection // FIXED HERE
+      await saveStudentProfile({
+        uid: currentUser.uid,
+        displayName,
+      });
+
+      // Also update the generic users collection so AuthContext picks up the name
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, { displayName });
+
+      setIsEditing(false);
+    } catch (e) {
+      console.error('Error saving student display name:', e);
+      alert('Failed to save name. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (!userProfile || !currentUser) {
     return null;
@@ -37,10 +70,11 @@ const StudentProfile = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors"
+                onClick={handleToggleEdit}
+                disabled={saving}
+                className="px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-lg hover:bg-indigo-700 dark:hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isEditing ? 'Save' : 'Edit Profile'}
+                {isEditing ? (saving ? 'Saving...' : 'Save') : 'Edit Profile'}
               </button>
             </div>
           </div>

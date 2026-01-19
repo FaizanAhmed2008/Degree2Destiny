@@ -115,8 +115,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
     setIsTyping(true);
 
     try {
-      // Try to use AI service, fallback to rule-based if fails
-      const response = await fetch('/api/ai/chat', {
+      // Try to use Destiny AI service, fallback to rule-based if it fails
+      const response = await fetch('/api/destiny-ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -136,9 +136,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
         };
         setMessages((prev) => [...prev, aiResponse]);
       } else {
-        throw new Error('AI service unavailable');
+        console.error('[Destiny AI] HTTP error from API:', response.status);
+        throw new Error('Destiny AI service unavailable');
       }
     } catch (error) {
+      console.error('[Destiny AI] Falling back to rule-based response:', error);
       // Fallback to rule-based responses
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
@@ -192,7 +194,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
           <div className="bg-indigo-600 dark:bg-indigo-700 text-white p-4 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-              <h3 className="font-semibold">AI Assistant</h3>
+              <h3 className="font-semibold">Destiny AI</h3>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -291,11 +293,11 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
 function getWelcomeMessage(role: UserRole): string {
   switch (role) {
     case 'student':
-      return "👋 Hello! I'm your AI assistant. I can help you:\n\n• Improve your skills\n• Plan your next steps\n• Understand your progress\n• Get career guidance\n\nHow can I help you today?";
+      return "👋 Hello! I'm Destiny AI, your career copilot. I can help you:\n\n• Improve your skills\n• Plan your next steps\n• Understand your progress\n• Get career guidance\n\nHow can I help you today?";
     case 'professor':
-      return "👋 Hello Professor! I'm your AI assistant. I can help you:\n\n• Find and track students\n• Monitor student progress\n• Identify students who need attention\n• Analyze class performance\n\nWhat would you like to know?";
+      return "👋 Hello Professor! I'm Destiny AI. I can help you:\n\n• Find and track students\n• Monitor student progress\n• Identify students who need attention\n• Analyze class performance\n\nWhat would you like to know?";
     case 'company':
-      return "👋 Hello! I'm your AI assistant. I can help you:\n\n• Find the best candidates\n• Discover new students for internships\n• Filter candidates by skills\n• Get hiring recommendations\n\nHow can I assist you today?";
+      return "👋 Hello! I'm Destiny AI. I can help you:\n\n• Find the best candidates\n• Discover new students for internships\n• Filter candidates by skills\n• Get hiring recommendations\n\nHow can I assist you today?";
     default:
       return "Hello! How can I help you?";
   }

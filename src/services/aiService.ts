@@ -1,20 +1,28 @@
-// AI Service for Gemini Integration
+// Destiny AI service for Gemini integration
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Initialize Gemini AI with error handling
+// Initialize Destiny AI (Gemini) with error handling
 let genAI: GoogleGenerativeAI | null = null;
 let model: any = null;
 
 try {
-  const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+  // Prefer server-side key, fall back to NEXT_PUBLIC for backwards compatibility
+  const apiKey =
+    process.env.GEMINI_API_KEY ||
+    process.env.NEXT_PUBLIC_GEMINI_API_KEY ||
+    '';
+
   if (apiKey && apiKey.trim() !== '') {
+    console.log('[Destiny AI] Initializing Gemini client (key present, not logged).');
     genAI = new GoogleGenerativeAI(apiKey);
     model = genAI.getGenerativeModel({ model: 'gemini-pro' });
   } else {
-    console.warn('NEXT_PUBLIC_GEMINI_API_KEY is not set. AI features will use fallback responses.');
+    console.warn(
+      '[Destiny AI] No Gemini API key found. Set GEMINI_API_KEY (recommended) or NEXT_PUBLIC_GEMINI_API_KEY.'
+    );
   }
 } catch (error) {
-  console.error('Error initializing Gemini AI:', error);
+  console.error('[Destiny AI] Error initializing Gemini AI:', error);
 }
 
 export interface AIPromptContext {
@@ -296,7 +304,7 @@ Format as JSON.`;
 }
 
 /**
- * Chat with AI assistant (context-aware)
+ * Chat with Destiny AI (context-aware)
  */
 export async function chatWithAI(
   message: string,
@@ -318,22 +326,34 @@ ${JSON.stringify(context.data, null, 2)}
 Provide a helpful, concise response (2-4 sentences).`;
 
   try {
+    console.log('[Destiny AI] chatWithAI called', {
+      role: context.role,
+      messagePreview: message.slice(0, 80),
+    });
+
     if (!model) {
       // Return helpful fallback message if Gemini is not configured
-      return 'I apologize, but the AI assistant is not fully configured. Please ensure NEXT_PUBLIC_GEMINI_API_KEY is set in your environment variables. For now, I can help with basic questions about the platform.';
+      return 'Destiny AI is not fully configured yet. Please ensure GEMINI_API_KEY is set in your environment variables. For now, I can still help with basic questions about the platform.';
     }
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    return response.text();
+    const text = response.text();
+
+    console.log('[Destiny AI] chatWithAI response received', {
+      role: context.role,
+      responsePreview: text.slice(0, 120),
+    });
+
+    return text;
   } catch (error: any) {
-    console.error('Error in AI chat:', error);
+    console.error('[Destiny AI] Error in AI chat:', error);
     // Provide more helpful error messages
     if (error.message?.includes('API_KEY')) {
-      return 'I apologize, but there was an issue with the AI service configuration. Please check your API key settings.';
+      return 'Destiny AI cannot start because there is a problem with the API key configuration. Please check your key settings.';
     }
     if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-      return 'I apologize, but the AI service is currently experiencing high demand. Please try again in a moment.';
+      return 'Destiny AI is currently experiencing high demand. Please try again in a moment.';
     }
-    return 'I apologize, but I encountered an error. Please try again or contact support if the issue persists.';
+    return 'Destiny AI encountered an unexpected error. Please try again or contact support if the issue persists.';
   }
 }

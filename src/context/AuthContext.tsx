@@ -27,7 +27,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, role: UserRole) => Promise<void>;
+  register: (email: string, password: string, role: UserRole) => Promise<UserProfile>;
   logout: () => Promise<void>;
 }
 
@@ -46,7 +46,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // Register new user with role
-  const register = async (email: string, password: string, role: UserRole) => {
+  const register = async (email: string, password: string, role: UserRole): Promise<UserProfile> => {
     try {
       // Create user account
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       await setDoc(doc(db, 'users', user.uid), userProfileData);
       setUserProfile(userProfileData);
+      return userProfileData; // Return the user profile data
     } catch (error: any) {
       throw error;
     }
@@ -93,9 +94,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         const profileData = userDoc.data() as UserProfile;
         setUserProfile(profileData);
+        console.log('User profile fetched:', profileData); // Added logging
+      } else {
+        console.warn('User profile not found in Firestore for UID:', uid); // Added logging
+        setUserProfile(null); // Ensure profile is null if not found
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
+      setUserProfile(null); // Ensure profile is null on error
     }
   };
 

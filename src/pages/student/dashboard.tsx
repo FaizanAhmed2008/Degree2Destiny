@@ -9,7 +9,23 @@ import SkillCard from '../../components/SkillCard';
 import AIInsightsCard from '../../components/AIInsightsCard';
 import { getStudentProfile, generateStudentInsights } from '../../services/studentService';
 import { StudentProfile, StudentSkill, AIInsights } from '../../types';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from 'recharts';
 
 const StudentDashboard = () => {
   const { currentUser, userProfile } = useAuth();
@@ -111,6 +127,23 @@ const StudentDashboard = () => {
     { date: 'Week 2', score: profile.jobReadinessScore - 5 },
     { date: 'Week 3', score: profile.jobReadinessScore },
     { date: 'Week 4', score: profile.jobReadinessScore },
+  ];
+
+  // Prepare data for Destiny scoring charts (mock scores are generated & persisted in studentService)
+  const aptitudeScore = profile.aptitudeScore ?? 0;
+  const technicalScore = profile.technicalScore ?? 0;
+  const communicationScore = profile.communicationScore ?? 0;
+  const overallScore = profile.overallScore ?? Math.round((aptitudeScore + technicalScore + communicationScore) / 3 || 0);
+
+  const scoreBreakdownData = [
+    { name: 'Aptitude', score: aptitudeScore },
+    { name: 'Technical', score: technicalScore },
+    { name: 'Communication', score: communicationScore },
+  ];
+
+  const overallPerformanceData = [
+    { metric: 'Overall', value: overallScore },
+    { metric: 'Readiness', value: profile.jobReadinessScore },
   ];
 
   return (
@@ -246,6 +279,51 @@ const StudentDashboard = () => {
                       <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2} />
                     </LineChart>
                   </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Destiny Score Breakdown (randomized mock scores) */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Destiny Score Breakdown</h2>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    Mock evaluation scores (40–100) for practice analytics
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Bar chart for individual scores */}
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={scoreBreakdownData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                        <XAxis dataKey="name" stroke="#6b7280" />
+                        <YAxis stroke="#6b7280" domain={[0, 100]} />
+                        <Tooltip />
+                        <Legend />
+                        <Bar dataKey="score" fill="#6366f1" name="Score" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Radar chart for overall performance vs readiness */}
+                  <div className="h-56">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={overallPerformanceData}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="metric" />
+                        <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                        <Radar
+                          name="Destiny Score"
+                          dataKey="value"
+                          stroke="#22c55e"
+                          fill="#22c55e"
+                          fillOpacity={0.4}
+                        />
+                        <Tooltip />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
 

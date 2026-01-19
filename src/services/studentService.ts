@@ -15,6 +15,9 @@ import { db } from '../firebase/firebaseConfig';
 import { StudentProfile, StudentSkill, Assessment, AssessmentSubmission, JobReadinessLevel } from '../types';
 import { analyzeStudentSkills, generateLearningRoadmap, generateImprovementSuggestions } from './aiService';
 
+// Utility to generate a random score between 40 and 100 (inclusive)
+const generateRandomScore = () => Math.floor(40 + Math.random() * 61);
+
 /**
  * Calculate job readiness score from skills
  */
@@ -48,12 +51,44 @@ export async function getStudentProfile(uid: string): Promise<StudentProfile | n
   try {
     const studentRef = doc(db, 'students', uid);
     const studentDoc = await getDoc(studentRef);
-    
-    if (studentDoc.exists()) {
-      return studentDoc.data() as StudentProfile;
+
+    if (!studentDoc.exists()) {
+      return null;
     }
-    
-    return null;
+
+    let student = studentDoc.data() as StudentProfile;
+
+    // Ensure mock Destiny scores exist and persist them if missing
+    // This keeps the data generation in one place and makes graphs consistent
+    if (
+      student.aptitudeScore === undefined ||
+      student.technicalScore === undefined ||
+      student.communicationScore === undefined ||
+      student.overallScore === undefined
+    ) {
+      const aptitudeScore = student.aptitudeScore ?? generateRandomScore();
+      const technicalScore = student.technicalScore ?? generateRandomScore();
+      const communicationScore = student.communicationScore ?? generateRandomScore();
+      const overallScore = Math.round((aptitudeScore + technicalScore + communicationScore) / 3);
+
+      await updateDoc(studentRef, {
+        aptitudeScore,
+        technicalScore,
+        communicationScore,
+        overallScore,
+        updatedAt: serverTimestamp(),
+      });
+
+      student = {
+        ...student,
+        aptitudeScore,
+        technicalScore,
+        communicationScore,
+        overallScore,
+      };
+    }
+
+    return student;
   } catch (error) {
     console.error('Error getting student profile:', error);
     return null;

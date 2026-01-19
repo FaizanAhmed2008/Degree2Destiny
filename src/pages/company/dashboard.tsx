@@ -9,6 +9,7 @@ import Chatbot from '../../components/Chatbot';
 // Student candidate interface
 interface Candidate {
   uid: string;
+  displayName?: string;
   email: string;
   skills: Array<{ id: string; name: string; score: number }>;
   readiness: number;
@@ -57,8 +58,14 @@ const CompanyDashboard = () => {
 
             const readiness = calculateReadiness(skills);
 
+            // Prefer stored displayName, fall back to email prefix
+            const displayName =
+              userData.displayName ||
+              (userData.email ? String(userData.email).split('@')[0] : undefined);
+
             candidatesList.push({
               uid: studentUid,
+              displayName,
               email: userData.email || 'N/A',
               skills,
               readiness,
@@ -267,11 +274,11 @@ const CompanyDashboard = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold">
-                            {candidate.email.substring(0, 2).toUpperCase()}
+                            {(candidate.displayName || candidate.email).substring(0, 2).toUpperCase()}
                           </div>
                           <div>
                             <h3 className="font-semibold text-gray-900 dark:text-white">
-                              {candidate.email}
+                              {candidate.displayName || candidate.email}
                             </h3>
                             {candidate.shortlisted && (
                               <span className="inline-block mt-1 px-2 py-1 text-xs font-semibold bg-green-600 dark:bg-green-700 text-white rounded-full">

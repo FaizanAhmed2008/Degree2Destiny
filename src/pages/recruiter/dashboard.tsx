@@ -353,7 +353,7 @@ const CandidateCard: React.FC<{
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-            {candidate.displayName || candidate.email.split('@')[0]}
+            {candidate.displayName || (candidate.email ? candidate.email.split('@')[0] : 'N/A')}
           </h3>
           <p className="text-sm text-gray-600 dark:text-gray-400">{candidate.email}</p>
           {candidate.preferredRoles && Array.isArray(candidate.preferredRoles) && candidate.preferredRoles.length > 0 && (

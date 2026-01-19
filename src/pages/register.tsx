@@ -1,30 +1,32 @@
+'use client';
+
 import React, { useState, FormEvent } from 'react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation';
 import { useAuth, UserRole } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 
-// Register page with email, password, and role selection
 const Register = () => {
+  const router = useRouter();
+  const { register } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState<UserRole>('student');
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
-  const router = useRouter();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
 
-    // Validate passwords match
+    // 🔒 Validation
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
     }
 
-    // Validate password length
     if (password.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -33,113 +35,127 @@ const Register = () => {
     setLoading(true);
 
     try {
-      await register(email, password, role);
-      // Redirect to appropriate dashboard after registration
-      switch (role) {
+      // ✅ IMPORTANT: use returned profile
+      const profile = await register(email, password, role);
+
+      // ✅ route based on DB role, not form input
+      switch (profile.role) {
         case 'student':
           router.push('/student/onboarding');
           break;
+
         case 'professor':
           router.push('/professor/dashboard');
           break;
+
         case 'recruiter':
         case 'company':
           router.push('/recruiter/dashboard');
           break;
+
+        default:
+          router.push('/');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create account. Please try again.');
+      setError(err?.message || 'Registration failed. Try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Navbar />
+
       <div className="flex items-center justify-center px-4 py-12">
-        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 transition-colors duration-200">
-          <h2 className="text-3xl font-bold text-center text-gray-900 dark:text-white mb-6">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8">
+          <h2 className="text-3xl font-bold text-center mb-6 text-gray-900 dark:text-white">
             Register
           </h2>
+
           {error && (
-            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-400 dark:border-red-700 text-red-700 dark:text-red-300 rounded">
+            <div className="mb-4 p-3 text-sm rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-400 dark:border-red-700">
               {error}
             </div>
           )}
+
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Email */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email
               </label>
               <input
-                id="email"
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
-                placeholder="your@email.com"
+                className="w-full px-4 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
+                placeholder="you@email.com"
               />
             </div>
+
+            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
               <input
-                id="password"
                 type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                className="w-full px-4 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
                 placeholder="••••••••"
               />
             </div>
+
+            {/* Confirm */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirm Password
               </label>
               <input
-                id="confirmPassword"
                 type="password"
+                required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                className="w-full px-4 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
                 placeholder="••••••••"
               />
             </div>
+
+            {/* Role */}
             <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Role
               </label>
               <select
-                id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value as UserRole)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                className="w-full px-4 py-2 border rounded-md dark:bg-gray-700 dark:text-white"
               >
                 <option value="student">Student</option>
                 <option value="professor">Professor / Mentor</option>
                 <option value="recruiter">Recruiter / HR</option>
-                <option value="company">Company (Legacy)</option>
+                <option value="company">Company</option>
               </select>
             </div>
+
             <button
               type="submit"
               disabled={loading}
-              className="w-full px-4 py-2 bg-indigo-600 dark:bg-indigo-700 text-white rounded-md hover:bg-indigo-700 dark:hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md disabled:opacity-50"
             >
               {loading ? 'Creating account...' : 'Register'}
             </button>
           </form>
+
           <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
             Already have an account?{' '}
             <button
               onClick={() => router.push('/login')}
-              className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
+              className="text-indigo-600 hover:underline"
             >
               Login here
             </button>
