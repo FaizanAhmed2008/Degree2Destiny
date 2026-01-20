@@ -44,15 +44,25 @@ const AIInterview: React.FC<AIInterviewProps> = ({
   const initializeInterview = async () => {
     try {
       setLoading(true);
+      setError('');
+
       const response = await fetch('/api/interviews/ai-interview?action=start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ skillName, skillLevel }),
       });
 
-      if (!response.ok) throw new Error('Failed to start interview');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.error || 'Failed to start interview');
+      }
 
       const data = await response.json();
+
+      if (!data.sessionId || !data.firstQuestion) {
+        throw new Error('Invalid response from server');
+      }
+
       setSessionId(data.sessionId);
       setCurrentQuestion(data.firstQuestion);
       setMessages([
@@ -64,15 +74,25 @@ const AIInterview: React.FC<AIInterviewProps> = ({
       ]);
       setQuestionCount(1);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start interview');
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to start interview. Please try again.';
+      setError(errorMessage);
+      console.error('[AI Interview] Initialization error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSubmitAnswer = async () => {
-    if (!userAnswer.trim()) {
+    const trimmedAnswer = userAnswer.trim();
+
+    if (!trimmedAnswer) {
       setError('Please provide an answer');
+      return;
+    }
+
+    if (trimmedAnswer.length > 10000) {
+      setError('Answer is too long (max 10,000 characters)');
       return;
     }
 
@@ -85,43 +105,70 @@ const AIInterview: React.FC<AIInterviewProps> = ({
         ...prev,
         {
           role: 'student',
-          content: userAnswer,
+          content: trimmedAnswer,
         },
       ]);
 
-      // Send answer to API
-      const response = await fetch('/api/interviews/ai-interview?action=answer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          answer: userAnswer,
-        }),
-      });
+      // Send answer to API with retry logic
+      let retries = 0;
+      let response;
+      const maxRetries = 2;
 
-      if (!response.ok) throw new Error('Failed to process answer');
+      while (retries <= maxRetries) {
+        try {
+          response = await fetch('/api/interviews/ai-interview?action=answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              sessionId,
+              answer: trimmedAnswer,
+            }),
+          });
+          break;
+        } catch (err) {
+          if (retries < maxRetries) {
+            retries++;
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          } else {
+            throw err;
+          }
+        }
+      }
+
+      if (!response || !response.ok) {
+        const errorData = await response?.json();
+        throw new Error(errorData?.error || 'Failed to process answer');
+      }
 
       const data = await response.json();
 
       if (data.isComplete) {
         // Interview complete
+        if (!data.evaluation) {
+          throw new Error('Invalid evaluation data received');
+        }
+
         setIsInterviewComplete(true);
         setEvaluation(data.evaluation);
         setMessages((prev) => [
           ...prev,
           {
             role: 'interviewer',
-            content: data.evaluation.feedback,
+            content: 'Interview completed successfully. Review your evaluation below.',
           },
         ]);
       } else {
         // Add next question
+        if (!data.nextQuestion) {
+          throw new Error('No question received from AI');
+        }
+
         setMessages((prev) => [
           ...prev,
           {
             role: 'interviewer',
             content: data.nextQuestion,
-            questionNumber: data.nextQuestion ? questionCount + 1 : undefined,
+            questionNumber: data.questionNumber || questionCount + 1,
           },
         ]);
         setQuestionCount((prev) => prev + 1);
@@ -130,7 +177,13 @@ const AIInterview: React.FC<AIInterviewProps> = ({
 
       setUserAnswer('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to process answer');
+      console.error('[AI Interview] Error:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to process answer. Please try again.';
+      setError(errorMessage);
+
+      // Remove the last student message if error occurred
+      setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
