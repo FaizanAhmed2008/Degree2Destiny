@@ -90,11 +90,13 @@ const StudentDashboard = () => {
   };
 
   const handleImproveSkill = (skillId: string) => {
-    router.push(`/student/skills/${skillId}/improve`);
+    // For demo: redirect to under development page
+    router.push('/under-development');
   };
 
   const handleVerifySkill = (skillId: string) => {
-    router.push(`/student/skills/${skillId}/verify`);
+    // For demo: redirect to under development page
+    router.push('/under-development');
   };
 
   if (loading) {
@@ -238,10 +240,10 @@ const StudentDashboard = () => {
                 />
               )}
 
-              {/* Readiness Progress */}
+              {/* Skills Overview - Single Clean Graph */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Readiness Progress</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Top Skills</h2>
                   <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                     profile.jobReadinessScore >= 80
                       ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
@@ -249,82 +251,52 @@ const StudentDashboard = () => {
                       ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
                       : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
                   }`}>
-                    {profile.jobReadinessLevel.replace('-', ' ')}
-                  </span>
-                </div>
-                <div className="mb-4">
-                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-6">
-                    <div
-                      className={`h-6 rounded-full flex items-center justify-center text-white font-semibold text-sm transition-all duration-500 ${
-                        profile.jobReadinessScore >= 80
-                          ? 'bg-gradient-to-r from-green-500 to-green-600'
-                          : profile.jobReadinessScore >= 60
-                          ? 'bg-gradient-to-r from-yellow-500 to-yellow-600'
-                          : 'bg-gradient-to-r from-red-500 to-red-600'
-                      }`}
-                      style={{ width: `${profile.jobReadinessScore}%` }}
-                    >
-                      {profile.jobReadinessScore}%
-                    </div>
-                  </div>
-                </div>
-                {/* Readiness Trend Chart */}
-                <div className="h-48 mt-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={readinessTrend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis dataKey="date" stroke="#6b7280" />
-                      <YAxis stroke="#6b7280" domain={[0, 100]} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Destiny Score Breakdown (randomized mock scores) */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Destiny Score Breakdown</h2>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    Mock evaluation scores (40–100) for practice analytics
+                    Overall Readiness: {profile.jobReadinessScore}%
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Bar chart for individual scores */}
-                  <div className="h-56">
+                {profile.skills.length > 0 ? (
+                  <div className="h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={scoreBreakdownData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis dataKey="name" stroke="#6b7280" />
-                        <YAxis stroke="#6b7280" domain={[0, 100]} />
-                        <Tooltip />
+                      <BarChart 
+                        data={profile.skills
+                          .sort((a, b) => b.score - a.score)
+                          .slice(0, 8)
+                          .map(skill => ({
+                            name: skill.name,
+                            points: skill.score,
+                            verified: skill.verificationStatus === 'verified',
+                          }))}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis 
+                          dataKey="name" 
+                          stroke="#9CA3AF"
+                          angle={-45}
+                          textAnchor="end"
+                          height={100}
+                        />
+                        <YAxis stroke="#9CA3AF" domain={[0, 100]} label={{ value: 'Skill Points', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1F2937', 
+                            border: '1px solid #374151',
+                            borderRadius: '8px',
+                            color: '#F3F4F6'
+                          }}
+                        />
                         <Legend />
-                        <Bar dataKey="score" fill="#6366f1" name="Score" />
+                        <Bar dataKey="points" fill="#6366f1" name="Skill Points" />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-
-                  {/* Radar chart for overall performance vs readiness */}
-                  <div className="h-56">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RadarChart data={overallPerformanceData}>
-                        <PolarGrid />
-                        <PolarAngleAxis dataKey="metric" />
-                        <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                        <Radar
-                          name="Destiny Score"
-                          dataKey="value"
-                          stroke="#22c55e"
-                          fill="#22c55e"
-                          fillOpacity={0.4}
-                        />
-                        <Tooltip />
-                      </RadarChart>
-                    </ResponsiveContainer>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 dark:text-gray-400 mb-4">
+                      No skills added yet. Add your skills to see your progress!
+                    </p>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Skills List */}
@@ -342,10 +314,10 @@ const StudentDashboard = () => {
                 {filteredSkills.length === 0 ? (
                   <div className="text-center py-12">
                     <p className="text-gray-500 dark:text-gray-400 mb-4">
-                      {searchTerm ? `No skills found matching "${searchTerm}"` : 'No skills added yet'}
+                      {searchTerm ? `No skills found matching "${searchTerm}"` : 'No skills added yet. Skills will appear here once added during onboarding.'}
                     </p>
                     <button
-                      onClick={() => router.push('/student/skills/add')}
+                      onClick={() => router.push('/under-development')}
                       className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
                     >
                       Add Your First Skill
@@ -373,11 +345,11 @@ const StudentDashboard = () => {
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>
                 <div className="space-y-3">
                   <button
-                    onClick={() => router.push('/student/skills/add')}
+                    onClick={() => router.push('/student/skills-manage')}
                     className="w-full text-left p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
                   >
-                    <p className="font-medium text-indigo-900 dark:text-indigo-300">Add Skill</p>
-                    <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1">Add a new skill to track</p>
+                    <p className="font-medium text-indigo-900 dark:text-indigo-300">Manage Skills</p>
+                    <p className="text-xs text-indigo-700 dark:text-indigo-400 mt-1">Add, edit, or remove skills</p>
                   </button>
                   <button
                     onClick={() => router.push('/student/assessments')}

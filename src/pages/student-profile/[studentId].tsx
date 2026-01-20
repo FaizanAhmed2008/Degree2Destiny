@@ -220,7 +220,7 @@ const StudentProfilePublicPage = () => {
                             {skill.name}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {skill.category} • {skill.verificationStatus}
+                            {skill.category} • {skill.verificationStatus === 'verified' ? '✓ Verified' : skill.verificationStatus === 'rejected' ? '✗ Rejected' : '⏳ Not Verified'}
                           </p>
                         </div>
                         <div className="flex items-center space-x-2">
@@ -233,6 +233,52 @@ const StudentProfilePublicPage = () => {
                   </div>
                 )}
               </div>
+
+              {/* Projects */}
+              {profile.projects && profile.projects.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Projects</h2>
+                  <div className="space-y-4">
+                    {profile.projects.map((project) => (
+                      <div
+                        key={project.id}
+                        className="border border-gray-200 dark:border-gray-700 rounded-lg p-4"
+                      >
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                          {project.title}
+                        </h3>
+                        {project.description && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            {project.description}
+                          </p>
+                        )}
+                        {project.technologies && project.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mb-2">
+                            {project.technologies.map((tech, idx) => (
+                              <span
+                                key={idx}
+                                className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded text-xs"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {project.githubUrl && (
+                          <a
+                            href={project.githubUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline"
+                          >
+                            View on GitHub →
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right: basic profile details */}

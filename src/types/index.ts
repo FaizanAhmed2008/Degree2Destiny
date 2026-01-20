@@ -65,7 +65,7 @@ export interface StudentSkill {
   name: string;
   category: string;
   selfLevel: SkillLevel;
-  score: number; // 0-100, calculated from assessments
+  score: number; // 0-100, skill points - calculated from assessments
   proofLinks: string[]; // GitHub, portfolio, etc.
   verificationStatus: VerificationStatus;
   verifiedBy?: string; // Professor UID

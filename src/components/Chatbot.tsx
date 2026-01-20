@@ -124,13 +124,27 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
           role,
           contextData: {},
         }),
+        // Add timeout
+        signal: AbortSignal.timeout(10000), // 10 second timeout
       });
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Check if response contains error or fallback message
+        let responseText = data.response || getAIResponse(currentInput);
+        
+        // If AI returns configuration error, use rule-based response instead
+        if (responseText.includes('not fully configured') || 
+            responseText.includes('API key') ||
+            responseText.includes('unexpected error')) {
+          console.warn('[Destiny AI] AI returned error message, using rule-based fallback');
+          responseText = getAIResponse(currentInput);
+        }
+        
         const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
-          text: data.response || getAIResponse(currentInput),
+          text: responseText,
           sender: 'ai',
           timestamp: new Date(),
         };
@@ -140,8 +154,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
         throw new Error('Destiny AI service unavailable');
       }
     } catch (error) {
-      console.error('[Destiny AI] Falling back to rule-based response:', error);
-      // Fallback to rule-based responses
+      console.error('[Destiny AI] Error, using rule-based response:', error);
+      // Fallback to rule-based responses - always works
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: getAIResponse(currentInput),

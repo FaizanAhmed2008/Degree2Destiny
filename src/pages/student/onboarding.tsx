@@ -93,9 +93,52 @@ const StudentOnboarding = () => {
     
     setSaving(true);
     try {
+      // Add sample skills for demo if no skills exist
+      const skills = formData.skills && formData.skills.length > 0 ? formData.skills : [
+        {
+          id: `skill-${Date.now()}-1`,
+          name: 'React',
+          category: 'Frontend',
+          selfLevel: 'intermediate' as const,
+          score: 70,
+          proofLinks: [],
+          verificationStatus: 'pending' as const,
+          assessments: [],
+          lastUpdated: new Date(),
+        },
+        {
+          id: `skill-${Date.now()}-2`,
+          name: 'JavaScript',
+          category: 'Programming',
+          selfLevel: 'advanced' as const,
+          score: 80,
+          proofLinks: [],
+          verificationStatus: 'pending' as const,
+          assessments: [],
+          lastUpdated: new Date(),
+        },
+        {
+          id: `skill-${Date.now()}-3`,
+          name: 'Node.js',
+          category: 'Backend',
+          selfLevel: 'intermediate' as const,
+          score: 65,
+          proofLinks: [],
+          verificationStatus: 'pending' as const,
+          assessments: [],
+          lastUpdated: new Date(),
+        },
+      ];
+
+      // Ensure displayName is set - use email username if not provided
+      const displayName = formData.displayName || currentUser.email?.split('@')[0] || 'Student';
+
       await saveStudentProfile({
         uid: currentUser.uid,
+        email: currentUser.email || '',
         ...formData,
+        displayName,
+        skills,
         onboardingCompleted: true,
         onboardingStep: OnboardingSteps.length - 1,
       });

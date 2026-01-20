@@ -30,7 +30,7 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onImprove, onVerify }) => 
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-all hover:shadow-lg">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-all hover:shadow-lg border border-gray-200 dark:border-gray-700">
       <div className="flex justify-between items-start mb-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
@@ -47,8 +47,11 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onImprove, onVerify }) => 
             {skill.category} • Level: {skill.selfLevel}
           </p>
         </div>
-        <div className={`text-2xl font-bold ${getScoreColor(skill.score)}`}>
-          {skill.score}%
+        <div className="text-center">
+          <div className={`text-3xl font-bold ${getScoreColor(skill.score)}`}>
+            {skill.score}
+          </div>
+          <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">points</p>
         </div>
       </div>
 
@@ -103,10 +106,17 @@ const SkillCard: React.FC<SkillCardProps> = ({ skill, onImprove, onVerify }) => 
       {skill.assessments && skill.assessments.length > 0 && (
         <div className="mb-4">
           <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-            Assessments: {skill.assessments.filter(a => a.status === 'evaluated').length} / {skill.assessments.length}
+            Assessments: {skill.assessments.filter(a => a.status === 'evaluated').length} / {skill.assessments.length} completed
           </p>
         </div>
       )}
+      
+      {/* Skill Points Info */}
+      <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
+        <p className="text-xs text-indigo-900 dark:text-indigo-300 font-medium">
+          💡 Skill Points: Higher points = stronger proficiency
+        </p>
+      </div>
 
       {/* Actions */}
       <div className="flex gap-2">

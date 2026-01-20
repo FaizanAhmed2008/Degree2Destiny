@@ -18,19 +18,29 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [theme, setThemeState] = useState<Theme>('light');
   const [mounted, setMounted] = useState(false);
 
-  // Load theme from localStorage or system preference on mount
+  // Load theme from localStorage or system preference on mount (client-side only)
   useEffect(() => {
     setMounted(true);
+    
+    // Only access browser APIs on client
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    
     const savedTheme = localStorage.getItem('theme') as Theme;
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const systemPrefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches;
     
     const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
     setThemeState(initialTheme);
     applyTheme(initialTheme);
   }, []);
 
-  // Apply theme to document
+  // Apply theme to document (client-side only)
   const applyTheme = (newTheme: Theme) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    
     const root = document.documentElement;
     if (newTheme === 'dark') {
       root.classList.add('dark');
@@ -39,10 +49,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Set theme and persist to localStorage
+  // Set theme and persist to localStorage (client-side only)
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem('theme', newTheme);
+    
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.setItem('theme', newTheme);
+    }
+    
     applyTheme(newTheme);
   };
 

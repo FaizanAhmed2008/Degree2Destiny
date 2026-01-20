@@ -120,17 +120,17 @@ export async function findMatchingStudents(
     
     studentsSnapshot.forEach((doc) => {
       const profile = doc.data() as StudentProfile;
-      let matches = true;
+      let isMatch = true;
       
       // Check readiness
       if (criteria.minReadiness && profile.jobReadinessScore < criteria.minReadiness) {
-        matches = false;
+        isMatch = false;
       }
       
       // Check verified skills
       if (criteria.verifiedOnly) {
         const hasVerified = (profile.skills || []).some(s => s.verificationStatus === 'verified');
-        if (!hasVerified) matches = false;
+        if (!hasVerified) isMatch = false;
       }
       
       // Check skills
@@ -141,7 +141,7 @@ export async function findMatchingStudents(
           );
           return skill && skill.score >= (criteria.minScore || 60);
         });
-        if (!hasRequiredSkills) matches = false;
+        if (!hasRequiredSkills) isMatch = false;
       }
       
       // Check job type
@@ -149,7 +149,7 @@ export async function findMatchingStudents(
         const matchesJobType = criteria.jobType.some(jt => 
           (profile.jobType || []).includes(jt as any)
         );
-        if (!matchesJobType) matches = false;
+        if (!matchesJobType) isMatch = false;
       }
       
       // Check preferred roles
@@ -159,10 +159,10 @@ export async function findMatchingStudents(
             role.toLowerCase().includes(pr.toLowerCase())
           )
         );
-        if (!matchesRole) matches = false;
+        if (!matchesRole) isMatch = false;
       }
       
-      if (matches) {
+      if (isMatch) {
         matches.push(profile);
       }
     });

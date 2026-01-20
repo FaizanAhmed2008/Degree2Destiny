@@ -10,6 +10,7 @@ import { generateProfessorFeedback } from '../../services/aiService';
 import { StudentProfile, AssessmentSubmission, ProfessorFeedback } from '../../types';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 const ProfessorDashboard = () => {
   const { currentUser, userProfile } = useAuth();
@@ -20,6 +21,9 @@ const ProfessorDashboard = () => {
   const [selectedSubmission, setSelectedSubmission] = useState<AssessmentSubmission | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'needs-attention' | 'ready'>('all');
+  const [skillFilter, setSkillFilter] = useState('');
+  const [minSkillPoints, setMinSkillPoints] = useState(0);
+  const [maxSkillPoints, setMaxSkillPoints] = useState(100);
 
   useEffect(() => {
     const loadStudents = async () => {
@@ -46,15 +50,30 @@ const ProfessorDashboard = () => {
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
-      (student.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || // Add optional chaining and default empty string
-      (student.displayName?.toLowerCase().includes(searchTerm.toLowerCase())); // Add optional chaining
+      (student.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (student.displayName?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     
     const matchesFilter = 
       filterStatus === 'all' ||
-      (filterStatus === 'needs-attention' && (student.jobReadinessScore ?? 0) < 60) || // Use nullish coalescing
-      (filterStatus === 'ready' && (student.jobReadinessScore ?? 0) >= 80); // Use nullish coalescing
+      (filterStatus === 'needs-attention' && (student.jobReadinessScore ?? 0) < 60) ||
+      (filterStatus === 'ready' && (student.jobReadinessScore ?? 0) >= 80);
 
-    return matchesSearch && matchesFilter;
+    // Skill point filtering
+    let matchesSkill = true;
+    if (skillFilter.trim()) {
+      matchesSkill = (student.skills || []).some(skill => {
+        const nameMatches = skill.name.toLowerCase().includes(skillFilter.toLowerCase());
+        const pointsInRange = skill.score >= minSkillPoints && skill.score <= maxSkillPoints;
+        return nameMatches && pointsInRange;
+      });
+    } else if (minSkillPoints > 0 || maxSkillPoints < 100) {
+      // If no skill name specified but points range is set, check if any skill is in range
+      matchesSkill = (student.skills || []).some(skill => 
+        skill.score >= minSkillPoints && skill.score <= maxSkillPoints
+      );
+    }
+
+    return matchesSearch && matchesFilter && matchesSkill;
   });
 
   const handleViewStudent = async (studentId: string) => {
@@ -202,13 +221,36 @@ const ProfessorDashboard = () => {
 
   const stats = {
     total: students.length,
-    ready: students.filter(s => s.jobReadinessScore >= 80).length,
-    developing: students.filter(s => s.jobReadinessScore >= 60 && s.jobReadinessScore < 80).length,
-    needsAttention: students.filter(s => s.jobReadinessScore < 60).length,
+    ready: students.filter(s => (s.jobReadinessScore ?? 0) >= 80).length,
+    developing: students.filter(s => (s.jobReadinessScore ?? 0) >= 60 && (s.jobReadinessScore ?? 0) < 80).length,
+    needsAttention: students.filter(s => (s.jobReadinessScore ?? 0) < 60).length,
     avgReadiness: students.length > 0
-      ? Math.round(students.reduce((sum, s) => sum + s.jobReadinessScore, 0) / students.length)
+      ? Math.round(students.reduce((sum, s) => sum + (s.jobReadinessScore ?? 0), 0) / students.length)
       : 0,
   };
+
+  // Prepare skill points data for graph
+  const skillPointsData = (() => {
+    const skillMap = new Map<string, { total: number; count: number }>();
+    filteredStudents.forEach(student => {
+      (student.skills || []).forEach(skill => {
+        const existing = skillMap.get(skill.name) || { total: 0, count: 0 };
+        skillMap.set(skill.name, {
+          total: existing.total + (skill.score ?? 0),
+          count: existing.count + 1,
+        });
+      });
+    });
+    
+    return Array.from(skillMap.entries())
+      .map(([name, data]) => ({
+        skill: name,
+        avgPoints: Math.round(data.total / data.count),
+        students: data.count,
+      }))
+      .sort((a, b) => b.avgPoints - a.avgPoints)
+      .slice(0, 10);
+  })();
 
   if (loading) {
     return (
@@ -298,35 +340,140 @@ const ProfessorDashboard = () => {
 
           {/* Filters */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <input
-                type="text"
-                placeholder="Search students..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value as any)}
-                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-              >
-                <option value="all">All Students</option>
-                <option value="needs-attention">Needs Attention</option>
-                <option value="ready">Ready (80%+)</option>
-              </select>
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Filters</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Search Students
+                </label>
+                <input
+                  type="text"
+                  placeholder="Name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Readiness Level
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value as any)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="all">All Students</option>
+                  <option value="needs-attention">Needs Attention (&lt;60%)</option>
+                  <option value="ready">Ready (80%+)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Filter by Skill Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. React, Python..."
+                  value={skillFilter}
+                  onChange={(e) => setSkillFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Min Skill Points: {minSkillPoints}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={minSkillPoints}
+                  onChange={(e) => setMinSkillPoints(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Max Skill Points: {maxSkillPoints}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={maxSkillPoints}
+                  onChange={(e) => setMaxSkillPoints(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterStatus('all');
+                    setSkillFilter('');
+                    setMinSkillPoints(0);
+                    setMaxSkillPoints(100);
+                  }}
+                  className="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Reset Filters
+                </button>
+              </div>
             </div>
           </div>
+
+          {/* Skill Points Graph */}
+          {skillPointsData.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                Top Skills - Average Points Across Students
+              </h2>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={skillPointsData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                    <XAxis 
+                      dataKey="skill" 
+                      stroke="#9CA3AF" 
+                      angle={-45}
+                      textAnchor="end"
+                      height={100}
+                    />
+                    <YAxis stroke="#9CA3AF" domain={[0, 100]} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: '#1F2937', 
+                        border: '1px solid #374151',
+                        borderRadius: '8px',
+                        color: '#F3F4F6'
+                      }}
+                    />
+                    <Legend />
+                    <Bar dataKey="avgPoints" fill="#6366f1" name="Avg Skill Points" />
+                    <Bar dataKey="students" fill="#22c55e" name="# of Students" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           {/* Students List */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Students</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Students ({filteredStudents.length})
+                </h2>
                 {filteredStudents.length === 0 ? (
                   <p className="text-gray-500 dark:text-gray-400 text-center py-8">No students found.</p>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto">
                     {filteredStudents.map((student) => (
                       <StudentCard
                         key={student.uid}
@@ -370,14 +517,19 @@ const StudentCard: React.FC<{
   student: StudentProfile;
   onView: () => void;
 }> = ({ student, onView }) => {
-  const displayScore = student.jobReadinessScore ?? 0; // Provide a default score
+  const displayScore = student.jobReadinessScore ?? 0;
+  const topSkills = (student.skills || [])
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
 
   return (
     <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors cursor-pointer" onClick={onView}>
       <div className="flex items-center justify-between mb-3">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 dark:text-white">{student.displayName || student.email}</h3>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{student.email}</p>
+          <h3 className="font-semibold text-gray-900 dark:text-white">
+            {student.displayName || student.email?.split('@')[0] || 'Student'}
+          </h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{student.email || 'No email'}</p>
         </div>
         <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
           displayScore >= 80
@@ -389,6 +541,21 @@ const StudentCard: React.FC<{
           {displayScore}%
         </span>
       </div>
+      
+      {/* Top Skills with Points */}
+      {topSkills.length > 0 && (
+        <div className="mb-2">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Top Skills (Points):</p>
+          <div className="flex flex-wrap gap-1">
+            {topSkills.map(skill => (
+              <span key={skill.id} className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 rounded">
+                {skill.name}: {skill.score}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      
       <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
         <div
           className={`h-2 rounded-full ${
@@ -429,42 +596,59 @@ const StudentDetailsPanel: React.FC<{
       </div>
 
       <div className="mb-4">
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">{student.displayName || student.email}</h4>
-        <p className="text-sm text-gray-600 dark:text-gray-400">Readiness: {(student.jobReadinessScore ?? 0)}%</p> // Default to 0
+        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
+          {student.displayName || student.email?.split('@')[0] || 'Student'}
+        </h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{student.email || 'No email'}</p>
+        <p className="text-sm text-gray-600 dark:text-gray-400">Readiness: {(student.jobReadinessScore ?? 0)}%</p>
       </div>
 
       <div className="mb-4">
-        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Skills</h4>
-        <div className="space-y-2">
-          {(student.skills || []).map(skill => ( // Ensure skills array exists
-            <div key={skill.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.name}</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">{(skill.score ?? 0)}%</span> // Default to 0
-              </div>
-              {skill.verificationStatus === 'pending' && (
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => onVerifySkill(student.uid, skill.id, 'verified')}
-                    className="flex-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-                  >
-                    Verify
-                  </button>
-                  <button
-                    onClick={() => onVerifySkill(student.uid, skill.id, 'rejected')}
-                    className="flex-1 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
-                  >
-                    Reject
-                  </button>
+        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Skills & Points</h4>
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {(student.skills || []).length === 0 ? (
+            <p className="text-sm text-gray-500 dark:text-gray-400">No skills added yet</p>
+          ) : (
+            (student.skills || []).map(skill => (
+              <div key={skill.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div className="flex justify-between items-center mb-1">
+                  <div className="flex-1">
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">{skill.name}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">({skill.category})</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                      {(skill.score ?? 0)} pts
+                    </span>
+                    {skill.verificationStatus === 'verified' && (
+                      <span className="text-xs text-green-600 dark:text-green-400">✓</span>
+                    )}
+                  </div>
                 </div>
-              )}
-            </div>
-          ))}
+                {skill.verificationStatus === 'pending' && (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => onVerifySkill(student.uid, skill.id, 'verified')}
+                      className="flex-1 px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                    >
+                      Verify
+                    </button>
+                    <button
+                      onClick={() => onVerifySkill(student.uid, skill.id, 'rejected')}
+                      className="flex-1 px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                    >
+                      Reject
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {pendingSubmissions.length > 0 && (
-        <div>
+        <div className="mb-4">
           <h4 className="font-semibold text-gray-900 dark:text-white mb-2">
             Pending Submissions ({pendingSubmissions.length})
           </h4>
@@ -482,6 +666,78 @@ const StudentDetailsPanel: React.FC<{
           </div>
         </div>
       )}
+
+      {/* Projects & Portfolio */}
+      <div className="mb-4">
+        <h4 className="font-semibold text-gray-900 dark:text-white mb-2">Projects & Portfolio</h4>
+        {student.projects && student.projects.length > 0 ? (
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {student.projects.map((project) => (
+              <div key={project.id} className="p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <p className="text-sm font-medium text-gray-900 dark:text-white">{project.title}</p>
+                {project.description && (
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{project.description}</p>
+                )}
+                {project.technologies && project.technologies.length > 0 && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Tech: {project.technologies.join(', ')}
+                  </p>
+                )}
+                {project.githubUrl && (
+                  <a
+                    href={project.githubUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline mt-1 block"
+                  >
+                    View on GitHub →
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-gray-400">No projects added yet</p>
+        )}
+        
+        {(student.portfolioUrl || student.githubUrl || student.linkedinUrl) && (
+          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Portfolio Links:</p>
+            <div className="space-y-1">
+              {student.portfolioUrl && (
+                <a
+                  href={student.portfolioUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline block"
+                >
+                  Portfolio
+                </a>
+              )}
+              {student.githubUrl && (
+                <a
+                  href={student.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline block"
+                >
+                  GitHub
+                </a>
+              )}
+              {student.linkedinUrl && (
+                <a
+                  href={student.linkedinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline block"
+                >
+                  LinkedIn
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

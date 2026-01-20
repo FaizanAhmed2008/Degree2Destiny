@@ -11,6 +11,9 @@ const ProfileDropdown: React.FC = () => {
   const router = useRouter();
 
   useEffect(() => {
+    // Client-side only event listener
+    if (typeof document === 'undefined') return;
+    
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -22,7 +25,9 @@ const ProfileDropdown: React.FC = () => {
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('mousedown', handleClickOutside);
+      }
     };
   }, [isOpen]);
 

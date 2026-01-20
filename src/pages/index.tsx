@@ -4,12 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
 
-// Enhanced smooth scroll function with easing
+// Enhanced smooth scroll function with easing (client-side only)
 const smoothScrollTo = (element: HTMLElement, offset: number = 80) => {
-  const elementPosition = element.getBoundingClientRect().top;
-  const offsetPosition = elementPosition + window.pageYOffset - offset;
+  if (typeof window === 'undefined') return;
   
-  const startPosition = window.pageYOffset;
+  const elementPosition = element.getBoundingClientRect().top;
+  const offsetPosition = elementPosition + window.scrollY - offset;
+  
+  const startPosition = window.scrollY;
   const distance = offsetPosition - startPosition;
   const duration = Math.min(Math.abs(distance) * 0.5, 1000); // Max 1 second
   let start: number | null = null;
@@ -41,20 +43,18 @@ const Home = () => {
   const { theme } = useTheme();
   const [isVisible, setIsVisible] = useState(false);
 
-  // Redirect authenticated users to their dashboard
+  // Redirect authenticated users to their dashboard (only once)
   useEffect(() => {
-    if (currentUser && userProfile) {
-      switch (userProfile.role) {
-        case 'student':
-          router.push('/student/dashboard');
-          break;
-        case 'professor':
-          router.push('/professor/dashboard');
-          break;
-        case 'company':
-        case 'recruiter':
-          router.push('/recruiter/dashboard');
-          break;
+    if (currentUser && userProfile && userProfile.role) {
+      // Use replace instead of push to avoid back button issues
+      const targetPath = 
+        userProfile.role === 'student' ? '/student/dashboard' :
+        userProfile.role === 'professor' ? '/professor/dashboard' :
+        (userProfile.role === 'company' || userProfile.role === 'recruiter') ? '/recruiter/dashboard' :
+        null;
+      
+      if (targetPath && router.pathname === '/') {
+        router.replace(targetPath);
       }
     }
   }, [currentUser, userProfile, router]);
@@ -65,6 +65,8 @@ const Home = () => {
   }, []);
 
   const scrollToSection = (id: string) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    
     const element = document.getElementById(id);
     if (element) {
       // Use enhanced smooth scroll with easing
@@ -74,8 +76,9 @@ const Home = () => {
         // Fallback for older browsers
         const headerOffset = 80;
         const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({
+        const win = window as Window & typeof globalThis;
+        const offsetPosition = elementPosition + win.scrollY - headerOffset;
+        win.scrollTo({
           top: offsetPosition,
           behavior: 'smooth'
         });

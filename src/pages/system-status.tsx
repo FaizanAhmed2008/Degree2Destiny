@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
 import Navbar from '../components/Navbar';
 import ProtectedRoute from '../components/ProtectedRoute';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
@@ -11,6 +12,7 @@ interface StatusItem {
 }
 
 const SystemStatusPage = () => {
+  const router = useRouter();
   const [statuses, setStatuses] = useState<StatusItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -120,12 +122,22 @@ const SystemStatusPage = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            System Status
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Internal debug page showing the health of Destiny AI, APIs, and data connections.
-          </p>
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                System Status
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Internal debug page showing the health of Destiny AI, APIs, and data connections.
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/admin-demo-utils')}
+              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium"
+            >
+              Demo Utilities
+            </button>
+          </div>
 
           {loading ? (
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">

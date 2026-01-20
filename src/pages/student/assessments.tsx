@@ -160,10 +160,10 @@ const StudentAssessments = () => {
               {allAssessments.length === 0 && (
                 <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-xl shadow-md">
                   <p className="text-gray-500 dark:text-gray-400 mb-4">
-                    No assessments available yet. Add skills to get assessments.
+                    No assessments available yet. Skills with assessments will be added during onboarding.
                   </p>
                   <button
-                    onClick={() => router.push('/student/skills/add')}
+                    onClick={() => router.push('/under-development')}
                     className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                   >
                     Add Skills

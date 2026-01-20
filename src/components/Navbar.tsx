@@ -17,7 +17,7 @@ const Navbar: React.FC = () => {
       case 'student':
         return [
           { name: 'Dashboard', path: '/student/dashboard' },
-          { name: 'Skills', path: '/student/dashboard#skills' },
+          { name: 'Manage Skills', path: '/student/skills-manage' },
           { name: 'Profile', path: '/student/profile' },
         ];
       case 'professor':
@@ -42,33 +42,51 @@ const Navbar: React.FC = () => {
   const navLinks = getNavLinks();
   const isLandingPage = router.pathname === '/';
 
-  // Landing page navigation links
+  // Landing page navigation links with client-side guards
   const landingNavLinks = [
-    { name: 'Home', path: '/', action: () => window.scrollTo({ top: 0, behavior: 'smooth' }) },
-    { name: 'About', path: '/#about', action: () => {
-      const element = document.getElementById('about');
-      if (element) {
-        const headerOffset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
+    { 
+      name: 'Home', 
+      path: '/', 
+      action: () => {
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
       }
-    }},
-    { name: 'Features', path: '/#features', action: () => {
-      const element = document.getElementById('features');
-      if (element) {
-        const headerOffset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
+    },
+    { 
+      name: 'About', 
+      path: '/#about', 
+      action: () => {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        const element = document.getElementById('about');
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
       }
-    }},
+    },
+    { 
+      name: 'Features', 
+      path: '/#features', 
+      action: () => {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        const element = document.getElementById('features');
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    },
   ];
 
   return (
