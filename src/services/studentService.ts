@@ -171,6 +171,38 @@ export async function saveStudentSkill(
 }
 
 /**
+ * Delete a skill by id (and recalculate readiness)
+ */
+export async function deleteStudentSkill(studentId: string, skillId: string): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('Student profile not found');
+    }
+
+    const studentData = studentDoc.data() as StudentProfile;
+    const skills = studentData.skills || [];
+    const updatedSkills = skills.filter(s => s.id !== skillId);
+
+    // Recalculate readiness score
+    const readinessScore = calculateJobReadinessScore(updatedSkills);
+    const readinessLevel = getJobReadinessLevel(readinessScore);
+
+    await updateDoc(studentRef, {
+      skills: updatedSkills,
+      jobReadinessScore: readinessScore,
+      jobReadinessLevel: readinessLevel,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error deleting student skill:', error);
+    throw error;
+  }
+}
+
+/**
  * Submit an assessment
  */
 export async function submitAssessment(

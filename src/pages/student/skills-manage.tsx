@@ -4,7 +4,7 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
-import { getStudentProfile, saveStudentSkill } from '../../services/studentService';
+import { deleteStudentSkill, getStudentProfile, saveStudentSkill } from '../../services/studentService';
 import { StudentProfile, StudentSkill, SkillLevel } from '../../types';
 import { serverTimestamp } from 'firebase/firestore';
 
@@ -49,6 +49,20 @@ const SkillsManage = () => {
 
     setSaving(true);
     try {
+      const previousSkill = editingSkill
+        ? (profile?.skills || []).find(s => s.id === editingSkill.id) || editingSkill
+        : null;
+
+      // If a student changes a previously verified/rejected skill, require re-verification
+      const shouldResetVerification =
+        !!previousSkill && previousSkill.verificationStatus !== 'pending' && (
+          previousSkill.name !== skillName.trim() ||
+          previousSkill.category !== (skillCategory.trim() || 'General') ||
+          previousSkill.selfLevel !== skillLevel ||
+          previousSkill.score !== skillScore ||
+          previousSkill.proofLinks.join(',') !== (proofLinks.trim() ? proofLinks.split(',').map(l => l.trim()).join(',') : '')
+        );
+
       const newSkill: StudentSkill = {
         id: editingSkill?.id || `skill-${Date.now()}`,
         name: skillName.trim(),
@@ -56,7 +70,11 @@ const SkillsManage = () => {
         selfLevel: skillLevel,
         score: skillScore,
         proofLinks: proofLinks.trim() ? proofLinks.split(',').map(l => l.trim()) : [],
-        verificationStatus: 'pending',
+        verificationStatus: shouldResetVerification
+          ? 'pending'
+          : (previousSkill?.verificationStatus || 'pending'),
+        verifiedBy: shouldResetVerification ? undefined : previousSkill?.verifiedBy,
+        verifiedAt: shouldResetVerification ? undefined : previousSkill?.verifiedAt,
         assessments: editingSkill?.assessments || [],
         lastUpdated: serverTimestamp(),
       };
@@ -94,13 +112,7 @@ const SkillsManage = () => {
 
     setSaving(true);
     try {
-      const updatedSkills = (profile?.skills || []).filter(s => s.id !== skillId);
-      
-      // Save updated skills array
-      for (const skill of updatedSkills) {
-        await saveStudentSkill(currentUser.uid, skill);
-      }
-      
+      await deleteStudentSkill(currentUser.uid, skillId);
       await loadProfile();
       alert('Skill deleted successfully!');
     } catch (error) {

@@ -11,7 +11,7 @@ interface Candidate {
   uid: string;
   displayName?: string;
   email: string;
-  skills: Array<{ id: string; name: string; score: number }>;
+  skills: Array<{ id: string; name: string; score: number; verificationStatus?: 'pending' | 'verified' | 'rejected' | 'under-review' }>;
   readiness: number;
   shortlisted: boolean;
 }
@@ -25,6 +25,12 @@ const CompanyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [shortlistedCount, setShortlistedCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
+  
+  // Skill filters
+  const [skillFilter, setSkillFilter] = useState('');
+  const [minSkillPoints, setMinSkillPoints] = useState(0);
+  const [maxSkillPoints, setMaxSkillPoints] = useState(100);
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'pending' | 'rejected'>('all');
 
   // Calculate readiness for a student based on their skills
   const calculateReadiness = (skills: Array<{ id: string; name: string; score: number }>) => {
@@ -51,7 +57,7 @@ const CompanyDashboard = () => {
             const skillsRef = doc(db, 'students', studentUid);
             const skillsDoc = await getDoc(skillsRef);
             
-            let skills: Array<{ id: string; name: string; score: number }> = [];
+            let skills: Array<{ id: string; name: string; score: number; verificationStatus?: 'pending' | 'verified' | 'rejected' | 'under-review' }> = [];
             if (skillsDoc.exists()) {
               skills = skillsDoc.data().skills || [];
             }
@@ -90,13 +96,38 @@ const CompanyDashboard = () => {
 
   // Filter candidates based on minimum readiness and search term
   useEffect(() => {
-    const filtered = candidates.filter(
-      (candidate) =>
-        candidate.readiness >= minReadiness &&
-        candidate.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = candidates.filter((candidate) => candidate.readiness >= minReadiness);
+    
+    if (searchTerm) {
+      const q = searchTerm.toLowerCase();
+      filtered = filtered.filter((candidate) => (candidate.email || '').toLowerCase().includes(q));
+    }
+    
+    // Skill name + points range filter
+    if (skillFilter.trim()) {
+      const q = skillFilter.toLowerCase();
+      filtered = filtered.filter((candidate) =>
+        (candidate.skills || []).some((skill) => {
+          const nameMatches = (skill.name || '').toLowerCase().includes(q);
+          const pointsInRange = (skill.score ?? 0) >= minSkillPoints && (skill.score ?? 0) <= maxSkillPoints;
+          return nameMatches && pointsInRange;
+        })
+      );
+    } else if (minSkillPoints > 0 || maxSkillPoints < 100) {
+      filtered = filtered.filter((candidate) =>
+        (candidate.skills || []).some((skill) => (skill.score ?? 0) >= minSkillPoints && (skill.score ?? 0) <= maxSkillPoints)
+      );
+    }
+    
+    // Verification status filter
+    if (verificationFilter !== 'all') {
+      filtered = filtered.filter((candidate) =>
+        (candidate.skills || []).some((skill) => (skill.verificationStatus || 'pending') === verificationFilter)
+      );
+    }
+
     setFilteredCandidates(filtered);
-  }, [minReadiness, candidates, searchTerm]);
+  }, [minReadiness, candidates, searchTerm, skillFilter, minSkillPoints, maxSkillPoints, verificationFilter]);
 
   // Count shortlisted candidates
   useEffect(() => {
@@ -211,7 +242,7 @@ const CompanyDashboard = () => {
           {/* Filter Section */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6 transition-colors duration-200">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Filter Candidates</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label htmlFor="readiness" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Minimum Readiness: {minReadiness}%
@@ -239,6 +270,63 @@ const CompanyDashboard = () => {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Filter by Skill Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. React, Python..."
+                  value={skillFilter}
+                  onChange={(e) => setSkillFilter(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Min Skill Points: {minSkillPoints}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={minSkillPoints}
+                  onChange={(e) => setMinSkillPoints(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Max Skill Points: {maxSkillPoints}
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={maxSkillPoints}
+                  onChange={(e) => setMaxSkillPoints(Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Verification Status
+                </label>
+                <select
+                  value={verificationFilter}
+                  onChange={(e) => setVerificationFilter(e.target.value as any)}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="all">All Skills</option>
+                  <option value="verified">Verified</option>
+                  <option value="pending">Not Verified</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -249,6 +337,21 @@ const CompanyDashboard = () => {
                   {shortlistedCount} shortlisted
                 </p>
               )}
+            </div>
+            <div className="mt-4">
+              <button
+                onClick={() => {
+                  setMinReadiness(0);
+                  setSearchTerm('');
+                  setSkillFilter('');
+                  setMinSkillPoints(0);
+                  setMaxSkillPoints(100);
+                  setVerificationFilter('all');
+                }}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Reset Filters
+              </button>
             </div>
           </div>
 
@@ -322,12 +425,20 @@ const CompanyDashboard = () => {
                               .sort((a, b) => b.score - a.score)
                               .slice(0, 3)
                               .map((skill) => (
-                                <span
-                                  key={skill.id}
-                                  className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs"
-                                >
-                                  {skill.name}: {skill.score}%
-                                </span>
+                                <div key={skill.id} className="flex items-center gap-1">
+                                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-xs">
+                                    {skill.name}: {skill.score}%
+                                  </span>
+                                  {(skill.verificationStatus || 'pending') === 'verified' ? (
+                                    <span className="text-xs text-green-600 dark:text-green-400 font-semibold" title="Verified">
+                                      Verified
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-yellow-700 dark:text-yellow-400 font-semibold" title="Not Verified">
+                                      Not Verified
+                                    </span>
+                                  )}
+                                </div>
                               ))}
                           </div>
                         </div>

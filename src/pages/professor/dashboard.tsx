@@ -33,8 +33,13 @@ const ProfessorDashboard = () => {
         const studentsSnapshot = await getDocs(studentsRef);
         
         const studentsList: StudentProfile[] = [];
-        studentsSnapshot.forEach((doc) => {
-          studentsList.push(doc.data() as StudentProfile);
+        studentsSnapshot.forEach((docSnap) => {
+          const data = docSnap.data() as StudentProfile;
+          // Ensure uid exists even for legacy/demo docs
+          studentsList.push({
+            ...data,
+            uid: data.uid || docSnap.id,
+          } as StudentProfile);
         });
 
         setStudents(studentsList);
