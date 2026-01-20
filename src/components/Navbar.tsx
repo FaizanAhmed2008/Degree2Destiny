@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import ProfileDropdown from './ProfileDropdown';
 import { useTheme } from '../context/ThemeContext';
+import Logo from './Logo';
 
 // Navigation bar component with modern design
 const Navbar: React.FC = () => {
@@ -87,6 +88,23 @@ const Navbar: React.FC = () => {
         }
       }
     },
+    { 
+      name: 'FAQ', 
+      path: '/#faq', 
+      action: () => {
+        if (typeof window === 'undefined' || typeof document === 'undefined') return;
+        const element = document.getElementById('faq');
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.scrollY - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    },
   ];
 
   return (
@@ -95,7 +113,7 @@ const Navbar: React.FC = () => {
         ? `absolute top-0 left-0 right-0 ${
             theme === 'dark' 
               ? 'bg-transparent' 
-              : 'bg-black/20 backdrop-blur-md'
+              : 'bg-white/95 backdrop-blur-md shadow-sm'
           }`
         : 'bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm'
     } transition-colors duration-200 sticky top-0 z-50`}>
@@ -105,35 +123,20 @@ const Navbar: React.FC = () => {
           <div className="flex items-center space-x-8">
             <button
               onClick={() => router.push(currentUser ? (userProfile?.role === 'student' ? '/student/dashboard' : userProfile?.role === 'professor' ? '/professor/dashboard' : userProfile?.role === 'recruiter' || userProfile?.role === 'company' ? '/recruiter/dashboard' : '/') : '/')}
-              className="flex items-center space-x-2 group"
+              className="group"
             >
-              <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center transition-transform duration-200 group-hover:scale-105 relative">
-                <img 
-                  src="/file.svg" 
-                  alt="Degree2Destiny Logo" 
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    // Fallback to gradient div if logo fails to load
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const parent = target.parentElement;
-                    if (parent) {
-                      const fallback = parent.querySelector('.logo-fallback') as HTMLElement;
-                      if (fallback) fallback.style.display = 'flex';
-                    }
-                  }}
-                />
-                <div className="logo-fallback w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center hidden absolute inset-0">
-                  <span className="text-white font-bold text-sm">D2D</span>
-                </div>
-              </div>
-              <h1 className={`text-xl font-bold transition-colors ${
-                isLandingPage 
-                  ? theme === 'dark' 
-                    ? 'text-white' 
-                    : 'text-white drop-shadow-md'
-                  : 'text-gray-900 dark:text-white'
-              }`}>Degree2Destiny</h1>
+              <Logo 
+                size="md" 
+                showText={true} 
+                textClassName={`text-xl font-bold transition-colors ${
+                  isLandingPage 
+                    ? theme === 'dark' 
+                      ? 'text-white' 
+                      : 'text-gray-900'
+                    : 'text-gray-900 dark:text-white'
+                }`}
+                className="group-hover:scale-105 transition-transform duration-200"
+              />
             </button>
             
             {/* Navigation Links */}
@@ -146,7 +149,7 @@ const Navbar: React.FC = () => {
                     className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                       theme === 'dark' 
                         ? 'text-white hover:bg-white/10' 
-                        : 'text-white drop-shadow-md hover:bg-white/20'
+                        : 'text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     {link.name}
@@ -185,7 +188,7 @@ const Navbar: React.FC = () => {
                     isLandingPage 
                       ? theme === 'dark'
                         ? 'text-white hover:bg-white/10'
-                        : 'text-white drop-shadow-lg font-semibold hover:bg-white/25'
+                        : 'text-gray-900 font-semibold hover:bg-gray-100'
                       : 'text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
                 >

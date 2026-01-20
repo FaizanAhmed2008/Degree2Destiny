@@ -3,6 +3,44 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/Navbar';
 import { useTheme } from '../context/ThemeContext';
+import Logo from '../components/Logo';
+
+// FAQ Item Component with Accordion
+const FAQItem: React.FC<{ question: string; answer: string }> = ({ question, answer }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 transition-all duration-300">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        <span className="text-lg font-semibold text-gray-900 dark:text-white pr-4">
+          {question}
+        </span>
+        <svg
+          className={`w-5 h-5 text-gray-500 dark:text-gray-400 flex-shrink-0 transition-transform duration-300 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+        }`}
+      >
+        <div className="px-6 pb-4 text-gray-600 dark:text-gray-400 leading-relaxed">
+          {answer}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // Enhanced smooth scroll function with easing (client-side only)
 const smoothScrollTo = (element: HTMLElement, offset: number = 80) => {
@@ -327,19 +365,19 @@ const Home = () => {
             {/* Team Member 1 - Faizan */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-                F
+                FA
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Faizan</h3>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Faizan Ahmed</h3>
               <p className="text-gray-600 dark:text-gray-400 text-sm">Lead Developer and Backend Engineer</p>
             </div>
 
             {/* Team Member 2 - Mustafa */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
               <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-                M
+                MK
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mustafa</h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">Frontend Developer</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mustafa Khan</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">UI/UX + Frontend Developer</p>
             </div>
 
             {/* Team Member 3 - Mohammad Arifi */}
@@ -458,33 +496,65 @@ const Home = () => {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section id="faq" className="py-20 bg-white dark:bg-gray-900">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Frequently Asked Questions
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Find answers to common questions about Degree2Destiny
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {/* FAQ Item 1 */}
+            <FAQItem
+              question="What is the purpose of this platform?"
+              answer="Degree2Destiny bridges the gap between education and career success by connecting ambitious students, dedicated professors, and forward-thinking companies. It provides a comprehensive skill-driven platform for tracking student progress, verifying skills, and facilitating career placements."
+            />
+
+            {/* FAQ Item 2 */}
+            <FAQItem
+              question="How does the placement readiness system work?"
+              answer="Our placement readiness system evaluates students based on multiple factors including technical skills, aptitude scores, communication abilities, and verified assessments. Students receive an overall readiness score (0-100%) and can see detailed breakdowns across different skill categories. This helps identify areas for improvement and tracks progress over time."
+            />
+
+            {/* FAQ Item 3 */}
+            <FAQItem
+              question="Are student scores real or simulated?"
+              answer="Student scores are a combination of verified assessments, skill evaluations, and performance metrics. The platform uses both real assessment data from professors and AI-generated insights. Mock scores (aptitude, technical, communication) are generated for demonstration purposes and can be replaced with actual assessment results."
+            />
+
+            {/* FAQ Item 4 */}
+            <FAQItem
+              question="Can recruiters view student profiles?"
+              answer="Yes, recruiters and companies can view comprehensive student profiles including skills, scores, projects, and performance metrics. They can filter candidates by readiness score, skills, and verification status. However, students maintain control over their privacy settings and can choose what information is visible to recruiters."
+            />
+
+            {/* FAQ Item 5 */}
+            <FAQItem
+              question="How does Destiny AI assist students?"
+              answer="Destiny AI is your career copilot that provides personalized guidance on skill improvement, career planning, and next steps. It analyzes your profile, identifies strengths and weaknesses, suggests learning paths, and answers questions about the platform. Destiny AI offers role-specific assistance for students, professors, and recruiters."
+            />
+
+            {/* FAQ Item 6 */}
+            <FAQItem
+              question="Who can access dashboards?"
+              answer="The platform has three main user roles: Students can access their personal dashboard with skill tracking and progress analytics. Professors can view their assigned students' progress and manage assessments. Recruiters and companies can browse candidate profiles and shortlist potential hires. Each role has specific permissions and dashboard features tailored to their needs."
+            />
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center relative">
-                  <img 
-                    src="/logo.svg" 
-                    alt="Degree2Destiny Logo" 
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      // Fallback to gradient div if logo fails to load
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        const fallback = parent.querySelector('.logo-fallback') as HTMLElement;
-                        if (fallback) fallback.style.display = 'flex';
-                      }
-                    }}
-                  />
-                  <div className="logo-fallback w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center hidden absolute inset-0">
-                    <span className="text-white font-bold text-sm">D2D</span>
-                  </div>
-                </div>
-                <h3 className="text-white font-bold text-lg">Degree2Destiny</h3>
+                <Logo size="md" showText={true} textClassName="text-white font-bold text-lg" />
               </div>
               <p className="text-sm">
                 Bridging the gap between education and career success.
@@ -514,12 +584,12 @@ const Home = () => {
                 <li><button onClick={() => router.push('/register')} className="hover:text-white transition-colors">Sign Up</button></li>
                 <li><button onClick={() => router.push('/login')} className="hover:text-white transition-colors">Login</button></li>
                 <li><a href="#" className="hover:text-white transition-colors">Pricing</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
+                <li><button onClick={() => scrollToSection('faq')} className="hover:text-white transition-colors">FAQ</button></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-            <p>&copy; 2024 Degree2Destiny. All rights reserved.</p>
+            <p>&copy;2026 Alpha Devs. All rights reserved.</p>
           </div>
         </div>
       </footer>
