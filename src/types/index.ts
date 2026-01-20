@@ -68,10 +68,48 @@ export interface StudentSkill {
   score: number; // 0-100, skill points - calculated from assessments
   proofLinks: string[]; // GitHub, portfolio, etc.
   verificationStatus: VerificationStatus;
-  verifiedBy?: string; // Professor UID
+  verifiedBy?: string; // Professor UID or "AI"
   verifiedAt?: any;
   assessments: Assessment[];
   lastUpdated: any;
+  interviewTranscript?: InterviewTranscript; // AI interview data
+  interviewEvaluation?: InterviewEvaluation; // AI evaluation results
+}
+
+// AI Interview Transcript
+export interface InterviewTranscript {
+  id: string;
+  skillId: string;
+  studentId: string;
+  skillName: string;
+  startedAt: any;
+  completedAt?: any;
+  messages: InterviewMessage[];
+  status: 'in-progress' | 'completed' | 'abandoned';
+}
+
+// Interview Message
+export interface InterviewMessage {
+  role: 'interviewer' | 'student';
+  content: string;
+  timestamp: string; // ISO string timestamp
+  questionNumber?: number; // For interviewer messages
+}
+
+// AI Interview Evaluation
+export interface InterviewEvaluation {
+  score: number; // 0-100
+  skillLevel: SkillLevel;
+  strengths: string[];
+  weaknesses: string[];
+  feedback: string;
+  questionScores: Array<{
+    questionNumber: number;
+    question: string;
+    score: number;
+    feedback: string;
+  }>;
+  evaluatedAt: string; // ISO string timestamp
 }
 
 // Assessment
