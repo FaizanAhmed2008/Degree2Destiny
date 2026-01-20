@@ -19,7 +19,7 @@ try {
 
   if (apiKey && apiKey.trim() !== '') {
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 } catch (error) {
   console.error('[AI Interview] Error initializing Gemini:', error);
@@ -32,8 +32,19 @@ const interviewSessions: {
     transcript: InterviewMessage[];
     questionCount: number;
     skillName: string;
+    skillLevel: SkillLevel;
   };
 } = {};
+
+/**
+ * Sanitize user input
+ */
+function sanitizeInput(input: string): string {
+  return input
+    .trim()
+    .slice(0, 5000)
+    .replace(/[\x00-\x08\x0B-\x0C\x0E-\x1F]/g, '');
+}
 
 /**
  * Start a new AI interview session
@@ -51,41 +62,41 @@ export async function startInterviewSession(
 
   const sessionId = `interview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const systemPrompt = `You are a professional technical interviewer assessing a candidate's ${skillName} skill. 
+  const systemPrompt = `You are a professional technical interviewer for the ${skillName} skill.
 
-Your task:
-1. Ask exactly 5 questions total to evaluate the candidate's knowledge
-2. Start with basic conceptual questions (Q1-Q2)
-3. Progress to intermediate problem-solving (Q3-Q4)
-4. End with an advanced scenario (Q5)
-5. Ask follow-up questions if answers are weak or incomplete
-6. Evaluate based on technical depth, problem-solving, and clarity
-7. Keep questions focused on ${skillName} and related concepts
+CRITICAL RULES (MUST FOLLOW EXACTLY):
+1. You MUST ask exactly ONE clear question per message. NO multi-part questions.
+2. Questions must be specific and focused.
+3. Ask progressively: Q1-2 basic, Q3-4 intermediate, Q5 advanced.
+4. Only provide evaluation AFTER the 5th answer.
+5. ONLY provide evaluation in pure JSON (no extra text).
 
-Candidate's self-reported level: ${skillLevel}
+QUESTION PROGRESSION:
+- Q1: What is ${skillName}? Core concepts and use cases.
+- Q2: Key features and characteristics of ${skillName}.
+- Q3: Practical problem using ${skillName}. Solve it.
+- Q4: Scenario: How would you handle [edge case] with ${skillName}?
+- Q5: Advanced: Design a system using ${skillName} that handles [complexity].
 
-Interview Format:
-- Ask one question at a time
-- Wait for the answer before proceeding
-- After Q5 and final answer, provide evaluation in JSON format
-
-When providing evaluation (ONLY after all 5 questions are answered), return EXACTLY this JSON format:
+AFTER Q5 ANSWER, provide ONLY this JSON (no text before or after):
 {
-  "score": <0-100 number>,
-  "skillLevel": "<beginner|intermediate|advanced>",
-  "strengths": ["strength1", "strength2", "strength3"],
-  "weaknesses": ["weakness1", "weakness2"],
-  "feedback": "detailed feedback",
+  "score": <0-100>,
+  "skillLevel": "beginner|intermediate|advanced",
+  "strengths": ["s1", "s2", "s3"],
+  "weaknesses": ["w1", "w2"],
+  "feedback": "concise feedback",
   "questionScores": [
-    {"questionNumber": 1, "question": "Q1 text", "score": <0-100>, "feedback": "feedback"},
-    {"questionNumber": 2, "question": "Q2 text", "score": <0-100>, "feedback": "feedback"},
-    {"questionNumber": 3, "question": "Q3 text", "score": <0-100>, "feedback": "feedback"},
-    {"questionNumber": 4, "question": "Q4 text", "score": <0-100>, "feedback": "feedback"},
-    {"questionNumber": 5, "question": "Q5 text", "score": <0-100>, "feedback": "feedback"}
+    {"questionNumber": 1, "question": "...", "score": <0-100>, "feedback": "..."},
+    {"questionNumber": 2, "question": "...", "score": <0-100>, "feedback": "..."},
+    {"questionNumber": 3, "question": "...", "score": <0-100>, "feedback": "..."},
+    {"questionNumber": 4, "question": "...", "score": <0-100>, "feedback": "..."},
+    {"questionNumber": 5, "question": "...", "score": <0-100>, "feedback": "..."}
   ]
 }
 
-Start the interview now with your first question about ${skillName}.`;
+Candidate level: ${skillLevel}
+
+BEGIN INTERVIEW - START WITH Q1 ONLY:`;
 
   const chat = model.startChat({
     history: [
@@ -97,14 +108,14 @@ Start the interview now with your first question about ${skillName}.`;
         role: 'model',
         parts: [
           {
-            text: `Thank you for providing the context. I'm ready to conduct a ${skillLevel}-level interview for the ${skillName} skill. Let me start with our first question.\n\n**Question 1: Basic Concepts**\nCan you explain what ${skillName} is and describe its key characteristics or core principles? What problems does it solve?`,
+            text: `What is ${skillName}? Explain its core concepts, what it is used for, and the main problems it solves.`,
           },
         ],
       },
     ],
   });
 
-  const firstQuestion = `Can you explain what ${skillName} is and describe its key characteristics or core principles? What problems does it solve?`;
+  const firstQuestion = `What is ${skillName}? Explain its core concepts, what it is used for, and the main problems it solves.`;
 
   interviewSessions[sessionId] = {
     chat,
@@ -118,6 +129,7 @@ Start the interview now with your first question about ${skillName}.`;
     ],
     questionCount: 1,
     skillName,
+    skillLevel,
   };
 
   return {
@@ -143,57 +155,115 @@ export async function sendInterviewAnswer(
     throw new Error('Interview session not found');
   }
 
+  if (!answer || typeof answer !== 'string') {
+    throw new Error('Invalid answer provided');
+  }
+
+  const sanitizedAnswer = sanitizeInput(answer);
+  if (!sanitizedAnswer) {
+    throw new Error('Answer cannot be empty');
+  }
+
   // Add student's answer to transcript
   session.transcript.push({
     role: 'student',
-    content: answer,
+    content: sanitizedAnswer,
     timestamp: new Date().toISOString(),
   });
 
-  // Send answer to Gemini
-  const response = await session.chat.sendMessage(answer);
-  const aiResponse = response.response.text();
-
-  // Check if we've completed 5 questions and received evaluation
-  const isEvaluationResponse = aiResponse.includes('{') && aiResponse.includes('"score"');
-
-  if (isEvaluationResponse) {
-    // Extract JSON evaluation
-    const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Could not parse evaluation response');
-    }
-
-    const evaluation = JSON.parse(jsonMatch[0]) as InterviewEvaluation;
-    evaluation.evaluatedAt = new Date().toISOString();
-
-    // Add evaluation message to transcript
-    session.transcript.push({
-      role: 'interviewer',
-      content: aiResponse,
-      timestamp: new Date().toISOString(),
-    });
-
-    return {
-      isComplete: true,
-      evaluation,
-      transcript: session.transcript,
-    };
+  let aiResponse: string;
+  try {
+    const response = await session.chat.sendMessage(sanitizedAnswer);
+    aiResponse = response.response.text();
+  } catch (error: any) {
+    console.error('[AI Interview] Error sending message to Gemini:', error);
+    throw new Error('Failed to get response from AI. Please try again.');
   }
 
-  // Extract next question (increment question count)
+  if (!aiResponse || typeof aiResponse !== 'string') {
+    throw new Error('Invalid response from AI');
+  }
+
+  // Check if this is the evaluation (JSON format with score)
+  const isEvaluation = aiResponse.trim().startsWith('{') && aiResponse.includes('"score"');
+
+  if (isEvaluation) {
+    try {
+      // Extract JSON - handle case where it might have extra text
+      let jsonStr = aiResponse;
+      const jsonStart = aiResponse.indexOf('{');
+      const jsonEnd = aiResponse.lastIndexOf('}');
+
+      if (jsonStart === -1 || jsonEnd === -1) {
+        throw new Error('JSON brackets not found');
+      }
+
+      jsonStr = aiResponse.substring(jsonStart, jsonEnd + 1);
+
+      // Validate JSON
+      const evaluation = JSON.parse(jsonStr) as InterviewEvaluation;
+
+      // Validate required fields
+      if (
+        typeof evaluation.score !== 'number' ||
+        !evaluation.skillLevel ||
+        !Array.isArray(evaluation.strengths) ||
+        !Array.isArray(evaluation.weaknesses)
+      ) {
+        throw new Error('Invalid evaluation structure');
+      }
+
+      evaluation.evaluatedAt = new Date().toISOString();
+
+      // Add evaluation to transcript
+      session.transcript.push({
+        role: 'interviewer',
+        content: 'Interview completed. Evaluation provided.',
+        timestamp: new Date().toISOString(),
+      });
+
+      return {
+        isComplete: true,
+        evaluation,
+        transcript: session.transcript,
+      };
+    } catch (parseError: any) {
+      console.error('[AI Interview] Failed to parse evaluation:', parseError, aiResponse);
+      throw new Error(
+        'Failed to parse evaluation results. The interview could not be completed properly.'
+      );
+    }
+  }
+
+  // This is a new question
+  if (session.questionCount >= 5) {
+    throw new Error(
+      'Interview exceeded maximum questions. Please complete the current session.'
+    );
+  }
+
   session.questionCount++;
+
+  // Validate question format
+  const questionTrimmed = aiResponse.trim();
+  if (questionTrimmed.length === 0) {
+    throw new Error('AI provided empty question');
+  }
+
+  if (questionTrimmed.length > 2000) {
+    throw new Error('AI question too long');
+  }
 
   session.transcript.push({
     role: 'interviewer',
-    content: aiResponse,
+    content: questionTrimmed,
     questionNumber: session.questionCount,
     timestamp: new Date().toISOString(),
   });
 
   return {
     isComplete: false,
-    nextQuestion: aiResponse,
+    nextQuestion: questionTrimmed,
     transcript: session.transcript,
   };
 }

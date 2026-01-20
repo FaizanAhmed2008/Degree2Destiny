@@ -15,7 +15,7 @@ try {
   if (apiKey && apiKey.trim() !== '') {
     console.log('[Destiny AI] Initializing Gemini client (key present, not logged).');
     genAI = new GoogleGenerativeAI(apiKey);
-    model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   } else {
     console.warn(
       '[Destiny AI] No Gemini API key found. Set GEMINI_API_KEY (recommended) or NEXT_PUBLIC_GEMINI_API_KEY.'

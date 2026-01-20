@@ -32,19 +32,31 @@ export default async function handler(
     if (action === 'start') {
       const { skillName, skillLevel } = req.body as StartInterviewRequest;
 
-      if (!skillName || !skillLevel) {
-        return res.status(400).json({ error: 'Skill name and level are required' });
+      if (!skillName || typeof skillName !== 'string' || skillName.trim().length === 0) {
+        return res.status(400).json({ error: 'Valid skill name is required' });
       }
 
-      const result = await startInterviewSession(skillName, skillLevel);
+      if (!skillLevel || !['beginner', 'intermediate', 'advanced', 'expert'].includes(skillLevel)) {
+        return res.status(400).json({ error: 'Valid skill level is required' });
+      }
+
+      const result = await startInterviewSession(skillName.trim(), skillLevel);
       return res.status(200).json(result);
     }
 
     if (action === 'answer') {
       const { sessionId, answer } = req.body as AnswerInterviewRequest;
 
-      if (!sessionId || !answer) {
-        return res.status(400).json({ error: 'Session ID and answer are required' });
+      if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+        return res.status(400).json({ error: 'Valid session ID is required' });
+      }
+
+      if (!answer || typeof answer !== 'string' || answer.trim().length === 0) {
+        return res.status(400).json({ error: 'Answer cannot be empty' });
+      }
+
+      if (answer.length > 10000) {
+        return res.status(400).json({ error: 'Answer is too long' });
       }
 
       const result = await sendInterviewAnswer(sessionId, answer);
@@ -54,8 +66,8 @@ export default async function handler(
     if (action === 'transcript') {
       const { sessionId } = req.body as { sessionId: string };
 
-      if (!sessionId) {
-        return res.status(400).json({ error: 'Session ID is required' });
+      if (!sessionId || typeof sessionId !== 'string') {
+        return res.status(400).json({ error: 'Valid session ID is required' });
       }
 
       const transcript = getInterviewTranscript(sessionId);
@@ -65,8 +77,8 @@ export default async function handler(
     if (action === 'end') {
       const { sessionId } = req.body as { sessionId: string };
 
-      if (!sessionId) {
-        return res.status(400).json({ error: 'Session ID is required' });
+      if (!sessionId || typeof sessionId !== 'string') {
+        return res.status(400).json({ error: 'Valid session ID is required' });
       }
 
       endInterviewSession(sessionId);
@@ -75,7 +87,8 @@ export default async function handler(
 
     return res.status(400).json({ error: 'Unknown action' });
   } catch (error: any) {
-    console.error('Error in interview API:', error);
-    return res.status(500).json({ error: error.message || 'Internal server error' });
+    console.error('[AI Interview API] Error:', error);
+    const errorMessage = error?.message || 'Internal server error';
+    return res.status(500).json({ error: errorMessage });
   }
 }

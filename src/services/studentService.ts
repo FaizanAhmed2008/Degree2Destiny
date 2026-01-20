@@ -305,3 +305,73 @@ export async function getSkillImprovementSuggestions(
 }> {
   return await generateImprovementSuggestions(skillName, currentScore, targetScore);
 }
+
+/**
+ * Send a skill verification request to professors
+ */
+export async function sendSkillVerificationRequest(
+  studentId: string,
+  skillId: string,
+  skillName: string,
+  skillLevel: string,
+  score: number,
+  proofLinks: string[]
+): Promise<string> {
+  try {
+    const response = await fetch('/api/skills/verify-request?action=send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        studentId,
+        skillId,
+        skillName,
+        skillLevel,
+        score,
+        proofLinks,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to send verification request');
+    }
+
+    const data = await response.json();
+    return data.requestId;
+  } catch (error) {
+    console.error('Error sending verification request:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get verification requests (for students or professors)
+ */
+export async function getVerificationRequests(
+  studentId?: string,
+  processorId?: string,
+  status?: string
+): Promise<any[]> {
+  try {
+    const params = new URLSearchParams();
+    if (studentId) params.append('studentId', studentId);
+    if (processorId) params.append('processorId', processorId);
+    if (status) params.append('status', status);
+
+    const response = await fetch(`/api/skills/verify-request?action=list&${params}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to get verification requests');
+    }
+
+    const data = await response.json();
+    return data.requests || [];
+  } catch (error) {
+    console.error('Error getting verification requests:', error);
+    throw error;
+  }
+}
