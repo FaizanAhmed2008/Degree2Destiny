@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
-import { getStudentProfile } from '../../services/studentService';
+import { getStudentProfile, getVerificationRequests } from '../../services/studentService';
 import { generateProfessorFeedback } from '../../services/aiService';
 import { StudentProfile, AssessmentSubmission, ProfessorFeedback } from '../../types';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -24,6 +24,8 @@ const ProfessorDashboard = () => {
   const [skillFilter, setSkillFilter] = useState('');
   const [minSkillPoints, setMinSkillPoints] = useState(0);
   const [maxSkillPoints, setMaxSkillPoints] = useState(100);
+  const [verificationRequests, setVerificationRequests] = useState<any[]>([]);
+  const [processingRequestId, setProcessingRequestId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadStudents = async () => {
@@ -43,6 +45,10 @@ const ProfessorDashboard = () => {
         });
 
         setStudents(studentsList);
+
+        // Load verification requests
+        const requests = await getVerificationRequests(undefined, currentUser?.uid);
+        setVerificationRequests(requests.filter((r: any) => r.status === 'pending'));
       } catch (error) {
         console.error('Error loading students:', error);
       } finally {
@@ -51,7 +57,7 @@ const ProfessorDashboard = () => {
     };
 
     loadStudents();
-  }, []);
+  }, [currentUser]);
 
   const filteredStudents = students.filter(student => {
     const matchesSearch = 
@@ -148,6 +154,54 @@ const ProfessorDashboard = () => {
     } catch (error) {
       console.error('Error verifying skill:', error);
       alert('Failed to verify skill. Please try again.');
+    }
+  };
+
+  const handleProcessVerificationRequest = async (requestId: string, action: 'verify' | 'reject') => {
+    if (!currentUser) return;
+
+    setProcessingRequestId(requestId);
+    try {
+      const response = await fetch('/api/skills/verify-request?action=process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requestId,
+          action,
+          processorId: currentUser.uid,
+          processorNotes: '',
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to process request');
+      }
+
+      // Reload requests and students
+      setVerificationRequests(prev => prev.filter(r => r.id !== requestId));
+      const requests = await getVerificationRequests(undefined, currentUser.uid);
+      setVerificationRequests(requests.filter((r: any) => r.status === 'pending'));
+
+      // Reload students to reflect updated verification status
+      const studentsRef = collection(db, 'students');
+      const studentsSnapshot = await getDocs(studentsRef);
+      const studentsList: StudentProfile[] = [];
+      studentsSnapshot.forEach((docSnap) => {
+        const data = docSnap.data() as StudentProfile;
+        studentsList.push({
+          ...data,
+          uid: data.uid || docSnap.id,
+        } as StudentProfile);
+      });
+      setStudents(studentsList);
+
+      alert(`Skill ${action === 'verify' ? 'verified' : 'rejected'} successfully!`);
+    } catch (error) {
+      console.error('Error processing verification request:', error);
+      alert(`Failed to ${action} skill. Please try again.`);
+    } finally {
+      setProcessingRequestId(null);
     }
   };
 
@@ -432,6 +486,68 @@ const ProfessorDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Pending Skill Verification Requests */}
+          {verificationRequests.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                Pending Skill Verification Requests ({verificationRequests.length})
+              </h2>
+              <div className="space-y-3">
+                {verificationRequests.map((request) => (
+                  <div
+                    key={request.id}
+                    className="p-4 border border-yellow-200 dark:border-yellow-900/30 bg-yellow-50 dark:bg-yellow-900/10 rounded-lg"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          {request.skillName}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Student ID: {request.studentId} • Level: {request.skillLevel} • Score: {request.score}/100
+                        </p>
+                        {request.proofLinks.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Proof Links:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {request.proofLinks.map((link: string, idx: number) => (
+                                <a
+                                  key={idx}
+                                  href={link}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline"
+                                >
+                                  Link {idx + 1}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          onClick={() => handleProcessVerificationRequest(request.id, 'verify')}
+                          disabled={processingRequestId === request.id}
+                          className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                        >
+                          {processingRequestId === request.id ? 'Processing...' : 'Verify'}
+                        </button>
+                        <button
+                          onClick={() => handleProcessVerificationRequest(request.id, 'reject')}
+                          disabled={processingRequestId === request.id}
+                          className="px-4 py-2 bg-red-600 dark:bg-red-700 text-white rounded-lg hover:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+                        >
+                          {processingRequestId === request.id ? 'Processing...' : 'Reject'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Skill Points Graph */}
           {skillPointsData.length > 0 && (
