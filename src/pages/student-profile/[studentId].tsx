@@ -88,7 +88,7 @@ const StudentProfilePublicPage = () => {
     );
   }
 
-  const name = profile.displayName || profile.email.split('@')[0];
+  const name = profile.displayName || (profile.email ? profile.email.split('@')[0] : 'Student');
 
   const aptitudeScore = profile.aptitudeScore ?? 0;
   const technicalScore = profile.technicalScore ?? 0;
@@ -167,15 +167,21 @@ const StudentProfilePublicPage = () => {
                       Aptitude / Technical / Communication
                     </p>
                     <div className="h-56">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={scoreBreakdownData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis dataKey="name" stroke="#6b7280" />
-                          <YAxis stroke="#6b7280" domain={[0, 100]} />
-                          <Tooltip />
-                          <Bar dataKey="score" fill="#6366f1" name="Score" />
-                        </BarChart>
-                      </ResponsiveContainer>
+                      {scoreBreakdownData && scoreBreakdownData.length > 0 && scoreBreakdownData.every(item => item.score >= 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={scoreBreakdownData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" domain={[0, 100]} />
+                            <Tooltip />
+                            <Bar dataKey="score" fill="#6366f1" name="Score" />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                          Chart data unavailable
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -184,20 +190,26 @@ const StudentProfilePublicPage = () => {
                       Overall vs Readiness
                     </p>
                     <div className="h-56">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={overallTrendData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis dataKey="label" stroke="#6b7280" />
-                          <YAxis stroke="#6b7280" domain={[0, 100]} />
-                          <Tooltip />
-                          <Line
-                            type="monotone"
-                            dataKey="value"
-                            stroke="#22c55e"
-                            strokeWidth={2}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      {overallTrendData && overallTrendData.length > 0 && overallTrendData.every(item => item.value >= 0) ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={overallTrendData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="label" stroke="#6b7280" />
+                            <YAxis stroke="#6b7280" domain={[0, 100]} />
+                            <Tooltip />
+                            <Line
+                              type="monotone"
+                              dataKey="value"
+                              stroke="#22c55e"
+                              strokeWidth={2}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                          Chart data unavailable
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

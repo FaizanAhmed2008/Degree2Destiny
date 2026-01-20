@@ -99,7 +99,7 @@ const Home = () => {
             loop
             muted
             playsInline
-            className="w-full h-full object-cover opacity-30 dark:opacity-20"
+            className="w-full h-full object-cover opacity-60 dark:opacity-50"
             poster="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=1920&h=1080&fit=crop"
           >
             <source src="/videos/hero-video.mp4" type="video/mp4" />
@@ -110,8 +110,8 @@ const Home = () => {
               className="w-full h-full object-cover"
             />
           </video>
-          {/* Overlay gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/80 via-purple-900/70 to-pink-900/80 dark:from-gray-900/90 dark:via-gray-900/85 dark:to-gray-900/90"></div>
+          {/* Overlay gradient - reduced opacity for better video visibility */}
+          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 via-purple-900/50 to-pink-900/60 dark:from-gray-900/70 dark:via-gray-900/65 dark:to-gray-900/70"></div>
         </div>
 
         {/* Hero Content */}
@@ -165,44 +165,199 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Feature 1 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Feature 1 - Skill Gap Analysis */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Skill Gap Analysis</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-center">
+                Identify areas for improvement with comprehensive skill assessments and personalized gap analysis
+              </p>
+            </div>
+
+            {/* Feature 2 - Destiny AI Career Guidance */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Destiny AI Career Guidance</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-center">
+                Get AI-powered career advice and personalized recommendations to navigate your career path
+              </p>
+            </div>
+
+            {/* Feature 3 - Student Performance Tracking */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Track Your Progress</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Performance Tracking</h3>
               <p className="text-gray-600 dark:text-gray-400 text-center">
-                Monitor your skill development with real-time readiness scores and personalized insights
+                Monitor your progress with real-time readiness scores, aptitude tests, and detailed analytics
               </p>
             </div>
 
-            {/* Feature 2 */}
+            {/* Feature 4 - Recruiter Insights */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Expert Guidance</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Recruiter Insights</h3>
               <p className="text-gray-600 dark:text-gray-400 text-center">
-                Get personalized mentorship from professors who understand your career goals
+                Access detailed candidate profiles with verified skills, performance metrics, and readiness scores
               </p>
             </div>
 
-            {/* Feature 3 */}
+            {/* Feature 5 - Smart Dashboards */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
-              <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Career Opportunities</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Smart Dashboards</h3>
               <p className="text-gray-600 dark:text-gray-400 text-center">
-                Connect with top companies looking for skilled talent like you
+                Visualize your data with interactive charts, performance graphs, and comprehensive analytics
               </p>
+            </div>
+
+            {/* Feature 6 - Placement Readiness Score */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Placement Readiness Score</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-center">
+                Get an accurate measure of your job readiness with our comprehensive scoring system
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tech Stack Section */}
+      <section id="tech-stack" className="py-20 bg-white dark:bg-gray-900">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Tech Stack Used
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              Built with modern technologies for optimal performance and scalability
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-6">
+            {/* React */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">⚛️</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">React</h3>
+            </div>
+
+            {/* Next.js */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">▲</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Next.js</h3>
+            </div>
+
+            {/* Node.js */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">🟢</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Node.js</h3>
+            </div>
+
+            {/* Firebase */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">🔥</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Firebase</h3>
+            </div>
+
+            {/* Recharts */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">📊</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Recharts</h3>
+            </div>
+
+            {/* Tailwind CSS */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">💨</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Tailwind CSS</h3>
+            </div>
+
+            {/* TypeScript */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">📘</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">TypeScript</h3>
+            </div>
+
+            {/* AI API */}
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+              <div className="text-4xl mb-3">🤖</div>
+              <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Gemini AI</h3>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Team Section */}
+      <section id="team" className="py-20 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
+              Meet the Team
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+              The talented individuals behind Degree2Destiny
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Team Member 1 - Faizan */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                F
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Faizan</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Lead Developer and Backend Engineer</p>
+            </div>
+
+            {/* Team Member 2 - Mustafa */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                M
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mustafa</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Frontend Developer</p>
+            </div>
+
+            {/* Team Member 3 - Mohammad Arifi */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                MA
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Mohammad Arifi</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Helper, Video Creator, and Prototype Generator</p>
+            </div>
+
+            {/* Team Member 4 - Inshra Shaikh */}
+            <div className="bg-white dark:bg-gray-900 rounded-xl p-6 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-center">
+              <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-500 to-rose-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
+                IS
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Inshra Shaikh</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">Project Ideation and Presentation</p>
             </div>
           </div>
         </div>

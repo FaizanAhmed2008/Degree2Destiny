@@ -240,6 +240,135 @@ const StudentDashboard = () => {
                 />
               )}
 
+              {/* Destiny Performance Scores Charts */}
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                  Destiny Performance Scores
+                </h2>
+                
+                {scoreBreakdownData && scoreBreakdownData.length > 0 && aptitudeScore >= 0 && technicalScore >= 0 && communicationScore >= 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* Bar Chart for Individual Scores */}
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Aptitude / Technical / Communication
+                      </p>
+                      <div className="h-64">
+                        {scoreBreakdownData.every(item => item.score >= 0) ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={scoreBreakdownData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                              <XAxis 
+                                dataKey="name" 
+                                stroke="#6b7280"
+                                tick={{ fill: '#6b7280' }}
+                              />
+                              <YAxis 
+                                stroke="#6b7280" 
+                                domain={[0, 100]}
+                                tick={{ fill: '#6b7280' }}
+                              />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: '#1F2937', 
+                                  border: '1px solid #374151',
+                                  borderRadius: '8px',
+                                  color: '#F3F4F6'
+                                }}
+                              />
+                              <Bar dataKey="score" fill="#6366f1" name="Score" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                            Chart data unavailable
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Radar Chart for Overall Performance */}
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Overall Performance Analysis
+                      </p>
+                      <div className="h-64">
+                        {overallScore >= 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart data={scoreBreakdownData.concat([{ name: 'Overall', score: overallScore }])}>
+                              <PolarGrid stroke="#e5e7eb" />
+                              <PolarAngleAxis 
+                                dataKey="name" 
+                                tick={{ fill: '#6b7280', fontSize: 12 }}
+                              />
+                              <PolarRadiusAxis 
+                                angle={90} 
+                                domain={[0, 100]}
+                                tick={{ fill: '#6b7280', fontSize: 10 }}
+                              />
+                              <Radar
+                                name="Score"
+                                dataKey="score"
+                                stroke="#6366f1"
+                                fill="#6366f1"
+                                fillOpacity={0.6}
+                              />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: '#1F2937', 
+                                  border: '1px solid #374151',
+                                  borderRadius: '8px',
+                                  color: '#F3F4F6'
+                                }}
+                              />
+                              <Legend />
+                            </RadarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                            Chart data unavailable
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 dark:text-gray-400">
+                      Loading performance scores...
+                    </p>
+                  </div>
+                )}
+
+                {/* Score Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+                  <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Aptitude</p>
+                    <p className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                      {aptitudeScore}%
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Technical</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {technicalScore}%
+                    </p>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Communication</p>
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {communicationScore}%
+                    </p>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 text-center">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Overall</p>
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {overallScore}%
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               {/* Skills Overview - Single Clean Graph */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
                 <div className="flex items-center justify-between mb-6">
@@ -289,7 +418,7 @@ const StudentDashboard = () => {
                         <Bar dataKey="points" fill="#6366f1" name="Skill Points" />
                       </BarChart>
                     </ResponsiveContainer>
-                  </div>
+                    </div>
                 ) : (
                   <div className="text-center py-12">
                     <p className="text-gray-500 dark:text-gray-400 mb-4">
