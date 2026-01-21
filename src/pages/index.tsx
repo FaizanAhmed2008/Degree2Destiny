@@ -88,7 +88,7 @@ const Home = () => {
       const targetPath = 
         userProfile.role === 'student' ? '/student/dashboard' :
         userProfile.role === 'professor' ? '/professor/dashboard' :
-        (userProfile.role === 'company' || userProfile.role === 'recruiter') ? '/recruiter/dashboard' :
+        userProfile.role === 'recruiter' ? '/recruiter/dashboard' :
         null;
       
       if (targetPath && router.pathname === '/') {
@@ -164,7 +164,7 @@ const Home = () => {
               Transform Your Skills Into Career Success
             </p>
             <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto animate-fade-in-delay-2">
-              A skill-driven platform connecting ambitious students, dedicated professors, and forward-thinking companies
+              A skill-driven platform connecting ambitious students, dedicated professors, and HR / recruiters
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-delay-3">
               <button
@@ -512,7 +512,7 @@ const Home = () => {
             {/* FAQ Item 1 */}
             <FAQItem
               question="What is the purpose of this platform?"
-              answer="Degree2Destiny bridges the gap between education and career success by connecting ambitious students, dedicated professors, and forward-thinking companies. It provides a comprehensive skill-driven platform for tracking student progress, verifying skills, and facilitating career placements."
+              answer="Degree2Destiny bridges the gap between education and career success by connecting ambitious students, dedicated professors, and HR / recruiters. It provides a comprehensive skill-driven platform for tracking student progress, verifying skills, and facilitating career placements."
             />
 
             {/* FAQ Item 2 */}
@@ -530,7 +530,7 @@ const Home = () => {
             {/* FAQ Item 4 */}
             <FAQItem
               question="Can recruiters view student profiles?"
-              answer="Yes, recruiters and companies can view comprehensive student profiles including skills, scores, projects, and performance metrics. They can filter candidates by readiness score, skills, and verification status. However, students maintain control over their privacy settings and can choose what information is visible to recruiters."
+              answer="Yes, recruiters can view comprehensive student profiles including skills, scores, projects, and performance metrics. They can filter candidates by readiness score, skills, and verification status. However, students maintain control over their privacy settings and can choose what information is visible to recruiters."
             />
 
             {/* FAQ Item 5 */}
@@ -542,7 +542,7 @@ const Home = () => {
             {/* FAQ Item 6 */}
             <FAQItem
               question="Who can access dashboards?"
-              answer="The platform has three main user roles: Students can access their personal dashboard with skill tracking and progress analytics. Professors can view their assigned students' progress and manage assessments. Recruiters and companies can browse candidate profiles and shortlist potential hires. Each role has specific permissions and dashboard features tailored to their needs."
+              answer="The platform has three main user roles: Students can access their personal dashboard with skill tracking and progress analytics. Professors can view their assigned students' progress and manage assessments. Recruiters can browse verified candidate profiles and shortlist potential hires. Each role has specific permissions and dashboard features tailored to their needs."
             />
           </div>
         </div>
@@ -566,7 +566,7 @@ const Home = () => {
                 <li><button onClick={() => scrollToSection('about')} className="hover:text-white transition-colors">About Us</button></li>
                 <li><button onClick={() => router.push('/register')} className="hover:text-white transition-colors">For Students</button></li>
                 <li><button onClick={() => router.push('/register')} className="hover:text-white transition-colors">For Professors</button></li>
-                <li><button onClick={() => router.push('/register')} className="hover:text-white transition-colors">For Companies</button></li>
+                <li><button onClick={() => router.push('/register')} className="hover:text-white transition-colors">For HR / Recruiters</button></li>
               </ul>
             </div>
             <div>

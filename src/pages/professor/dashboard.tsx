@@ -5,7 +5,8 @@ import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
-import { getStudentProfile, getVerificationRequests } from '../../services/studentService';
+import VerificationRequests from '../../components/VerificationRequests';
+import { getStudentProfile, getVerificationRequests, getPendingVerificationRequests, onPendingVerificationsUpdate } from '../../services/studentService';
 import { generateProfessorFeedback } from '../../services/aiService';
 import { StudentProfile, AssessmentSubmission, ProfessorFeedback } from '../../types';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -45,18 +46,42 @@ const ProfessorDashboard = () => {
         });
 
         setStudents(studentsList);
+        console.log('[Firestore Read] Loaded all students:', studentsList.length);
 
-        // Load verification requests
-        const requests = await getVerificationRequests(undefined, currentUser?.uid);
-        setVerificationRequests(requests.filter((r: any) => r.status === 'pending'));
+        // Load pending verification requests
+        const pendingStudents = await getPendingVerificationRequests(currentUser?.uid);
+        setVerificationRequests(pendingStudents);
+        console.log('[Firestore Read] Loaded pending verification requests:', pendingStudents.length);
+
+        // Set up real-time listener for pending verifications
+        const unsubscribe = onPendingVerificationsUpdate(
+          (updatedRequests) => {
+            console.log('[State Sync] Pending verifications updated via real-time listener');
+            setVerificationRequests(updatedRequests);
+          },
+          (error) => {
+            console.error('[State Sync Error] Failed to listen for verification updates:', error);
+          },
+          currentUser?.uid
+        );
+
+        return unsubscribe;
       } catch (error) {
-        console.error('Error loading students:', error);
+        console.error('[Firestore Read Error] Error loading students:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadStudents();
+    const cleanup = loadStudents();
+    return () => {
+      // Handle cleanup if it's a promise
+      if (cleanup instanceof Promise) {
+        cleanup.then(unsubscribe => {
+          if (unsubscribe) unsubscribe();
+        }).catch(console.error);
+      }
+    };
   }, [currentUser]);
 
   const filteredStudents = students.filter(student => {
@@ -397,6 +422,18 @@ const ProfessorDashboard = () => {
             </div>
           </div>
 
+          {/* Verification Requests Section */}
+          <div className="mb-8">
+            <VerificationRequests 
+              requests={verificationRequests as StudentProfile[]}
+              loading={loading}
+              professorId={currentUser?.uid}
+              onProcessed={() => {
+                console.log('[UI] Verification processed, list will auto-update via real-time listener');
+              }}
+            />
+          </div>
+
           {/* Filters */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Filters</h2>
@@ -507,7 +544,7 @@ const ProfessorDashboard = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           Student ID: {request.studentId} • Level: {request.skillLevel} • Score: {request.score}/100
                         </p>
-                        {request.proofLinks.length > 0 && (
+                        {request.proofLinks && request.proofLinks.length > 0 && (
                           <div className="mt-2">
                             <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Proof Links:</p>
                             <div className="flex flex-wrap gap-2">

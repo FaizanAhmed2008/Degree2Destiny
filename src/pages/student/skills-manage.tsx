@@ -35,14 +35,26 @@ const SkillsManage = () => {
   }, [currentUser]);
 
   const loadProfile = async () => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      console.log('[Firestore Read] No current user, skipping profile load');
+      return;
+    }
     try {
+      console.log('[Firestore Read] Loading student profile', { studentId: currentUser.uid });
       const studentProfile = await getStudentProfile(currentUser.uid);
       if (studentProfile) {
+        console.log('[Firestore Read] Profile loaded successfully, skills count:', {
+          skillsCount: studentProfile.skills?.length || 0,
+        });
         setProfile(studentProfile);
+      } else {
+        console.log('[Firestore Read] No profile found for student');
       }
-    } catch (error) {
-      console.error('Error loading profile:', error);
+    } catch (error: any) {
+      console.error('[Firestore Read Error] Error loading profile:', {
+        error: error.message,
+        studentId: currentUser.uid,
+      });
     } finally {
       setLoading(false);
     }
@@ -50,12 +62,20 @@ const SkillsManage = () => {
 
   const handleAddSkill = async () => {
     if (!currentUser || !skillName.trim()) {
+      console.log('[UI] Skill name is required');
       alert('Please enter a skill name');
       return;
     }
 
     setSaving(true);
     try {
+      console.log('[Firestore Write] Starting skill save operation', {
+        skillName,
+        skillCategory,
+        skillLevel,
+        skillScore,
+      });
+
       const previousSkill = editingSkill
         ? (profile?.skills || []).find(s => s.id === editingSkill.id) || editingSkill
         : null;
@@ -70,7 +90,7 @@ const SkillsManage = () => {
           previousSkill.proofLinks.join(',') !== (proofLinks.trim() ? proofLinks.split(',').map(l => l.trim()).join(',') : '')
         );
 
-      const newSkill: StudentSkill = {
+      const skillData: any = {
         id: editingSkill?.id || `skill-${Date.now()}`,
         name: skillName.trim(),
         category: skillCategory.trim() || 'General',
@@ -80,24 +100,43 @@ const SkillsManage = () => {
         verificationStatus: shouldResetVerification
           ? 'pending'
           : (previousSkill?.verificationStatus || 'pending'),
-        verifiedBy: shouldResetVerification ? undefined : previousSkill?.verifiedBy,
-        verifiedAt: shouldResetVerification ? undefined : previousSkill?.verifiedAt,
         assessments: editingSkill?.assessments || [],
-        lastUpdated: serverTimestamp(),
+        lastUpdated: new Date().toISOString(),
       };
 
+      // Only add verifiedBy and verifiedAt if they have values
+      if (!shouldResetVerification && previousSkill?.verifiedBy) {
+        skillData.verifiedBy = previousSkill.verifiedBy;
+      }
+      if (!shouldResetVerification && previousSkill?.verifiedAt) {
+        skillData.verifiedAt = previousSkill.verifiedAt;
+      }
+
+      const newSkill: StudentSkill = skillData;
+
       await saveStudentSkill(currentUser.uid, newSkill);
+      console.log('[Firestore Write] Skill saved successfully to Firestore', {
+        skillId: newSkill.id,
+        skillName: newSkill.name,
+      });
       
-      // Reload profile
+      // Reload profile to verify persistence
       await loadProfile();
+      console.log('[Firestore Read] Profile reloaded after skill save, verifying persistence');
       
       // Reset form
       resetForm();
       
-      alert('Skill saved successfully!');
-    } catch (error) {
-      console.error('Error saving skill:', error);
-      alert('Failed to save skill. Please try again.');
+      const actionType = editingSkill ? 'updated' : 'saved';
+      alert(`Skill ${actionType} successfully! ${shouldResetVerification ? 'Verification status has been reset.' : ''}`);
+      console.log('[UI] Success notification shown to user');
+    } catch (error: any) {
+      console.error('[Firestore Write Error] Failed to save skill:', {
+        error: error.message,
+        code: error.code,
+        skillName,
+      });
+      alert(`Failed to save skill: ${error.message || 'Please try again.'}`);
     } finally {
       setSaving(false);
     }
@@ -119,12 +158,20 @@ const SkillsManage = () => {
 
     setSaving(true);
     try {
+      console.log('[Firestore Write] Deleting skill', { skillId });
       await deleteStudentSkill(currentUser.uid, skillId);
+      console.log('[Firestore Write] Skill deleted from Firestore');
+      
       await loadProfile();
+      console.log('[Firestore Read] Profile reloaded after deletion');
+      
       alert('Skill deleted successfully!');
-    } catch (error) {
-      console.error('Error deleting skill:', error);
-      alert('Failed to delete skill. Please try again.');
+    } catch (error: any) {
+      console.error('[Firestore Write Error] Failed to delete skill:', {
+        error: error.message,
+        skillId,
+      });
+      alert(`Failed to delete skill: ${error.message || 'Please try again.'}`);
     } finally {
       setSaving(false);
     }
@@ -135,6 +182,11 @@ const SkillsManage = () => {
 
     setSaving(true);
     try {
+      console.log('[Firestore Write] Sending skill verification request', {
+        skillId: skill.id,
+        skillName: skill.name,
+      });
+      
       await sendSkillVerificationRequest(
         currentUser.uid,
         skill.id,
@@ -143,11 +195,18 @@ const SkillsManage = () => {
         skill.score,
         skill.proofLinks
       );
+      console.log('[Firestore Write] Verification request sent successfully');
+      
       await loadProfile();
+      console.log('[Firestore Read] Profile reloaded after verification request');
+      
       alert('Verification request sent to professors!');
-    } catch (error) {
-      console.error('Error sending verification request:', error);
-      alert('Failed to send verification request. Please try again.');
+    } catch (error: any) {
+      console.error('[Firestore Write Error] Failed to send verification request:', {
+        error: error.message,
+        skillId: skill.id,
+      });
+      alert(`Failed to send verification request: ${error.message || 'Please try again.'}`);
     } finally {
       setSaving(false);
     }

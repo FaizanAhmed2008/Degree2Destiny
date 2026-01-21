@@ -24,9 +24,20 @@ const StudentAssessments = () => {
       if (!currentUser) return;
       try {
         const studentProfile = await getStudentProfile(currentUser.uid);
-        if (studentProfile) {
-          setProfile(studentProfile);
+        if (!studentProfile) {
+          router.push('/student/onboarding');
+          return;
         }
+
+        const registrationOk = Boolean(
+          (studentProfile as any).registrationCompleted || studentProfile.onboardingCompleted
+        );
+        if (!registrationOk) {
+          router.push('/student/onboarding');
+          return;
+        }
+
+        setProfile(studentProfile);
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -34,7 +45,7 @@ const StudentAssessments = () => {
       }
     };
     loadProfile();
-  }, [currentUser]);
+  }, [currentUser, router]);
 
   const handleStartAssessment = (assessment: Assessment) => {
     setSelectedAssessment(assessment);

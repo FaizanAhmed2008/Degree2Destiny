@@ -51,7 +51,6 @@ const ProfileDropdown: React.FC = () => {
         router.push('/professor/profile');
         break;
       case 'recruiter':
-      case 'company':
         router.push('/recruiter/profile');
         break;
     }

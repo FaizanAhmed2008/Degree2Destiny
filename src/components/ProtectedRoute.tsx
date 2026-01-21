@@ -38,7 +38,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
             router.push('/professor/dashboard');
             break;
           case 'recruiter':
-          case 'company':
             router.push('/recruiter/dashboard');
             break;
           default:

@@ -51,7 +51,6 @@ const Register = () => {
           break;
 
         case 'recruiter':
-        case 'company':
           router.push('/recruiter/dashboard');
           break;
 
@@ -178,7 +177,6 @@ const Register = () => {
                 <option value="student">Student</option>
                 <option value="professor">Professor / Mentor</option>
                 <option value="recruiter">Recruiter / HR</option>
-                <option value="company">Company</option>
               </select>
             </div>
 

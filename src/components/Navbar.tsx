@@ -27,12 +27,12 @@ const Navbar: React.FC = () => {
           { name: 'Students', path: '/professor/dashboard#students' },
           { name: 'Profile', path: '/professor/profile' },
         ];
-      case 'company':
       case 'recruiter':
         return [
           { name: 'Dashboard', path: '/recruiter/dashboard' },
           { name: 'Candidates', path: '/recruiter/dashboard#candidates' },
-          { name: 'Messages', path: '/recruiter/messages' },
+          // Messages route is implemented as part of the recruiter dashboard (no separate page).
+          { name: 'Messages', path: '/recruiter/dashboard#messages' },
           { name: 'Profile', path: '/recruiter/profile' },
         ];
       default:
@@ -122,7 +122,19 @@ const Navbar: React.FC = () => {
           {/* Logo and Navigation */}
           <div className="flex items-center space-x-8">
             <button
-              onClick={() => router.push(currentUser ? (userProfile?.role === 'student' ? '/student/dashboard' : userProfile?.role === 'professor' ? '/professor/dashboard' : userProfile?.role === 'recruiter' || userProfile?.role === 'company' ? '/recruiter/dashboard' : '/') : '/')}
+              onClick={() =>
+                router.push(
+                  currentUser
+                    ? userProfile?.role === 'student'
+                      ? '/student/dashboard'
+                      : userProfile?.role === 'professor'
+                        ? '/professor/dashboard'
+                        : userProfile?.role === 'recruiter'
+                          ? '/recruiter/dashboard'
+                          : '/'
+                    : '/'
+                )
+              }
               className="group"
             >
               <Logo 

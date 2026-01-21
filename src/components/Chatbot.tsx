@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth, UserRole } from '../context/AuthContext';
+import { UserRole } from '../context/AuthContext';
 
 interface Message {
   id: string;
@@ -70,7 +70,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
       }
     }
 
-    if (role === 'company') {
+    if (role === 'recruiter') {
       if (lowerMessage.includes('student') || lowerMessage.includes('candidate') || lowerMessage.includes('find')) {
         return "I can help you find the best candidates! Here's how:\n\n1. Use filters to find candidates by readiness score\n2. Search for specific skills\n3. View shortlisted candidates\n4. Check candidate profiles\n\nWould you like to see top candidates or new students for internships?";
       }
@@ -310,7 +310,7 @@ function getWelcomeMessage(role: UserRole): string {
       return "👋 Hello! I'm Destiny AI, your career copilot. I can help you:\n\n• Improve your skills\n• Plan your next steps\n• Understand your progress\n• Get career guidance\n\nHow can I help you today?";
     case 'professor':
       return "👋 Hello Professor! I'm Destiny AI. I can help you:\n\n• Find and track students\n• Monitor student progress\n• Identify students who need attention\n• Analyze class performance\n\nWhat would you like to know?";
-    case 'company':
+    case 'recruiter':
       return "👋 Hello! I'm Destiny AI. I can help you:\n\n• Find the best candidates\n• Discover new students for internships\n• Filter candidates by skills\n• Get hiring recommendations\n\nHow can I assist you today?";
     default:
       return "Hello! How can I help you?";
@@ -323,7 +323,7 @@ function getQuickActions(role: UserRole): string[] {
       return ['How to improve skills?', 'What are my next steps?', 'Check my progress'];
     case 'professor':
       return ['Find students', 'Track progress', 'View analytics'];
-    case 'company':
+    case 'recruiter':
       return ['Find best candidates', 'New students for internships', 'View shortlisted'];
     default:
       return [];

@@ -7,7 +7,19 @@ import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
 import { findMatchingStudents, recommendStudentsToRecruiter } from '../../services/matchingService';
 import { StudentProfile } from '../../types';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
+import {
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  arrayUnion,
+  arrayRemove,
+  serverTimestamp,
+  collection,
+  getDocs,
+  query,
+  where,
+} from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar } from 'recharts';
 
@@ -53,10 +65,13 @@ const RecruiterDashboard = () => {
           });
         }
 
-        // Get recommended students
-        const recommended = await recommendStudentsToRecruiter(currentUser.uid, 50);
-        setCandidates(recommended);
-        setFilteredCandidates(recommended);
+        // HR dashboard must show ONLY VERIFIED students (student-level verificationStatus).
+        const studentsQ = query(collection(db, 'students'), where('verificationStatus', '==', 'verified'));
+        const snap = await getDocs(studentsQ);
+        const verifiedStudents = snap.docs.map((d) => d.data() as StudentProfile);
+
+        setCandidates(verifiedStudents);
+        setFilteredCandidates(verifiedStudents);
       } catch (error) {
         console.error('Error loading candidates:', error);
       } finally {
@@ -75,16 +90,18 @@ const RecruiterDashboard = () => {
       filtered = filtered.filter(c => (c.jobReadinessScore ?? 0) >= minReadiness);
     }
 
+    // Note: base dataset is already student-level verified only.
+    // Keep this toggle for future expansion (e.g., "has verified skills"), but it should not broaden results.
     if (verifiedOnly) {
-      filtered = filtered.filter(c => 
-        (c.skills || []).some(s => s.verificationStatus === 'verified')
-      );
+      filtered = filtered.filter((c) => c.verificationStatus === 'verified');
     }
 
     if (searchTerm) {
       filtered = filtered.filter(c =>
         (c.email || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.fullName || c.displayName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.college || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (c.interestedRoleSkill || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
         (c.preferredRoles || []).some(r => r.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -231,7 +248,7 @@ const RecruiterDashboard = () => {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['recruiter', 'company']}>
+    <ProtectedRoute allowedRoles={['recruiter']}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar />
         <Chatbot role="recruiter" />
@@ -521,7 +538,7 @@ const RecruiterDashboard = () => {
                   isShortlisted={shortlistedIds.includes(candidate.uid)}
                   onShortlist={() => toggleShortlist(candidate.uid)}
                   onInterviewRequest={() => sendInterviewRequest(candidate.uid)}
-                  onViewProfile={() => router.push(`/recruiter/candidates/${candidate.uid}`)}
+                  onViewProfile={() => router.push(`/student-profile/${candidate.uid}`)}
                 />
               ))
             )}
@@ -551,9 +568,14 @@ const CandidateCard: React.FC<{
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-            {candidate.displayName || candidate.email?.split('@')[0] || 'Student'}
+            {candidate.fullName || candidate.displayName || candidate.email?.split('@')[0] || 'Student'}
           </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">{candidate.email || 'No email'}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            {candidate.interestedRoleSkill ? candidate.interestedRoleSkill : 'Interested Role / Skill not set'}
+          </p>
+          <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            {candidate.college ? candidate.college : 'College not set'}
+          </p>
           {(candidate.preferredRoles || []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {(candidate.preferredRoles || []).slice(0, 2).map((role, idx) => (
@@ -640,7 +662,7 @@ const CandidateCard: React.FC<{
           onClick={onViewProfile}
           className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm transition-colors"
         >
-          View
+          View Profile / Interview
         </button>
       </div>
     </div>

@@ -310,9 +310,6 @@ Degree2Destiny/
 │   │   │   │   └── verify-request.ts# Skill verification API
 │   │   │   └── students/
 │   │   │       └── insights.ts      # Student insights endpoint
-│   │   ├── company/
-│   │   │   ├── dashboard.tsx
-│   │   │   └── profile.tsx
 │   │   ├── professor/
 │   │   │   ├── dashboard.tsx
 │   │   │   └── profile.tsx

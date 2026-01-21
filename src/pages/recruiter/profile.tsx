@@ -15,7 +15,7 @@ const RecruiterProfile = () => {
   }
 
   return (
-    <ProtectedRoute allowedRoles={['recruiter', 'company']}>
+    <ProtectedRoute allowedRoles={['recruiter']}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
         <Navbar />
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -32,7 +32,7 @@ const RecruiterProfile = () => {
                   </h1>
                   <p className="text-gray-600 dark:text-gray-400">{userProfile.email}</p>
                   <span className="inline-block mt-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-full text-sm font-semibold">
-                    {userProfile.role === 'recruiter' ? 'Recruiter' : 'Company'}
+                    HR / Recruiter
                   </span>
                 </div>
               </div>
@@ -49,11 +49,11 @@ const RecruiterProfile = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Personal Info */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 transition-colors duration-200">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Company Information</h2>
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Recruiter Information</h2>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Company/Name
+                    Name / Organization
                   </label>
                   {isEditing ? (
                     <input

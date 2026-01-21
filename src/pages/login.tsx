@@ -39,8 +39,8 @@ const Login = () => {
         case 'professor':
           router.push('/professor/dashboard');
           break;
-        case 'company':
-          router.push('/company/dashboard');
+        case 'recruiter':
+          router.push('/recruiter/dashboard');
           break;
       }
     }

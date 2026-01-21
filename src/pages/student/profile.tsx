@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
@@ -6,13 +6,36 @@ import { useRouter } from 'next/router';
 import { saveStudentProfile } from '../../services/studentService';
 import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
+import { getStudentProfile } from '../../services/studentService';
 
 const StudentProfile = () => {
   const { userProfile, currentUser } = useAuth();
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState(userProfile?.displayName || '');
+  const [fullName, setFullName] = useState(userProfile?.displayName || '');
+  const [phoneWhatsApp, setPhoneWhatsApp] = useState('');
+  const [college, setCollege] = useState('');
+  const [interestedRoleSkill, setInterestedRoleSkill] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!currentUser) return;
+      try {
+        const profile = await getStudentProfile(currentUser.uid);
+        if (profile) {
+          setFullName(profile.fullName || profile.displayName || fullName);
+          setPhoneWhatsApp(profile.phoneWhatsApp || '');
+          setCollege(profile.college || '');
+          setInterestedRoleSkill(profile.interestedRoleSkill || '');
+        }
+      } catch (e) {
+        console.error('Error loading student profile details:', e);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.uid]);
 
   const handleToggleEdit = async () => {
     if (!isEditing) {
@@ -27,12 +50,18 @@ const StudentProfile = () => {
       // Update student profile document in students collection // FIXED HERE
       await saveStudentProfile({
         uid: currentUser.uid,
-        displayName,
+        fullName,
+        phoneWhatsApp,
+        college,
+        interestedRoleSkill,
+        displayName: fullName,
+        registrationCompleted: true,
+        onboardingCompleted: true,
       });
 
       // Also update the generic users collection so AuthContext picks up the name
       const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { displayName });
+      await updateDoc(userRef, { displayName: fullName });
 
       setIsEditing(false);
     } catch (e) {
@@ -61,7 +90,7 @@ const StudentProfile = () => {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {displayName || userProfile.email.split('@')[0]}
+                    {fullName || userProfile.email.split('@')[0]}
                   </h1>
                   <p className="text-gray-600 dark:text-gray-400">{userProfile.email}</p>
                   <span className="inline-block mt-2 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-semibold">
@@ -87,17 +116,62 @@ const StudentProfile = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    Display Name
+                    Full Name
                   </label>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={displayName}
-                      onChange={(e) => setDisplayName(e.target.value)}
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
                     />
                   ) : (
-                    <p className="text-gray-900 dark:text-white">{displayName || 'Not set'}</p>
+                    <p className="text-gray-900 dark:text-white">{fullName || 'Not set'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Phone / WhatsApp
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="tel"
+                      value={phoneWhatsApp}
+                      onChange={(e) => setPhoneWhatsApp(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  ) : (
+                    <p className="text-gray-900 dark:text-white">{phoneWhatsApp || 'Not set'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    College
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={college}
+                      onChange={(e) => setCollege(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  ) : (
+                    <p className="text-gray-900 dark:text-white">{college || 'Not set'}</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Interested Role / Skill
+                  </label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={interestedRoleSkill}
+                      onChange={(e) => setInterestedRoleSkill(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-indigo-500 dark:bg-gray-700 dark:text-white"
+                    />
+                  ) : (
+                    <p className="text-gray-900 dark:text-white">{interestedRoleSkill || 'Not set'}</p>
                   )}
                 </div>
                 <div>

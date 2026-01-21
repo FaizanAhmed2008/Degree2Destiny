@@ -8,7 +8,7 @@ export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert';
 
 export type AssessmentType = 'micro-task' | 'bug-fix' | 'scenario' | 'build-challenge';
 
-export type VerificationStatus = 'pending' | 'verified' | 'rejected' | 'under-review';
+export type VerificationStatus = 'not-requested' | 'pending' | 'verified' | 'rejected' | 'under-review';
 
 export type JobReadinessLevel = 'not-ready' | 'developing' | 'ready' | 'highly-ready';
 
@@ -26,6 +26,24 @@ export interface UserProfile {
 // Student Profile
 export interface StudentProfile extends UserProfile {
   role: 'student';
+  /**
+   * Mandatory registration fields (Step 0).
+   * These are required before a student can access any dashboard/tests.
+   */
+  fullName?: string;
+  phoneWhatsApp?: string;
+  college?: string;
+  interestedRoleSkill?: string;
+  registrationCompleted?: boolean;
+  /**
+   * Student-level verification gate used for HR access.
+   * (Separate from per-skill verificationStatus.)
+   * Lifecycle: NOT_REQUESTED -> PENDING -> VERIFIED/REJECTED
+   */
+  verificationStatus?: VerificationStatus;
+  requestedAt?: any; // Timestamp when student requested verification
+  verifiedAt?: any; // Timestamp when professor approved
+  verifiedBy?: string; // Professor UID who verified
   // Career Information
   careerInterests: string[];
   preferredRoles: string[];

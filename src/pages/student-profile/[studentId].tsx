@@ -50,7 +50,8 @@ const StudentProfilePublicPage = () => {
   }, [studentId]);
 
   // Enforce access rules:
-  // - Professor / Recruiter / Company can view any student
+  // - Professor can view any student (read-only)
+  // - Recruiter can view ONLY student-level verified profiles
   // - Student can only view their own profile
   useEffect(() => {
     if (!userProfile || !currentUser || !studentId || typeof studentId !== 'string') return;
@@ -60,9 +61,19 @@ const StudentProfilePublicPage = () => {
     }
   }, [userProfile, currentUser, studentId, router]);
 
+  // Recruiter gate: only allow verified student profiles.
+  useEffect(() => {
+    if (!userProfile || userProfile.role !== 'recruiter') return;
+    if (!profile) return;
+
+    if (profile.verificationStatus !== 'verified') {
+      router.replace('/recruiter/dashboard');
+    }
+  }, [userProfile, profile, router]);
+
   if (loading) {
     return (
-      <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter', 'company']}>
+      <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter']}>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Navbar />
           <div className="flex items-center justify-center h-screen">
@@ -75,7 +86,7 @@ const StudentProfilePublicPage = () => {
 
   if (error || !profile) {
     return (
-      <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter', 'company']}>
+      <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter']}>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
           <Navbar />
           <div className="flex items-center justify-center h-screen">
@@ -88,7 +99,23 @@ const StudentProfilePublicPage = () => {
     );
   }
 
-  const name = profile.displayName || (profile.email ? profile.email.split('@')[0] : 'Student');
+  // If a recruiter tries to view an unverified profile, redirect with a clear message.
+  if (userProfile?.role === 'recruiter' && profile.verificationStatus !== 'verified') {
+    return (
+      <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter']}>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+          <Navbar />
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-lg text-red-600 dark:text-red-400">
+              This student is not verified yet. Only verified profiles are visible to HR.
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
+
+  const name = profile.fullName || profile.displayName || (profile.email ? profile.email.split('@')[0] : 'Student');
 
   const aptitudeScore = profile.aptitudeScore ?? 0;
   const technicalScore = profile.technicalScore ?? 0;
@@ -116,12 +143,46 @@ const StudentProfilePublicPage = () => {
     null;
 
   return (
-    <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter', 'company']}>
+    <ProtectedRoute allowedRoles={['student', 'professor', 'recruiter']}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar />
         <Chatbot role={userProfile?.role || 'student'} />
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Mandatory registration details (always visible to Professor; visible to Recruiter only when verified by gate) */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+              Student Registration Details
+            </h2>
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">Full Name</dt>
+                <dd className="text-gray-900 dark:text-white font-medium">{profile.fullName || name}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">College</dt>
+                <dd className="text-gray-900 dark:text-white">{profile.college || 'Not specified'}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">Interested Role / Skill</dt>
+                <dd className="text-gray-900 dark:text-white">{profile.interestedRoleSkill || 'Not specified'}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">Verification Status</dt>
+                <dd className="text-gray-900 dark:text-white capitalize">{profile.verificationStatus || 'pending'}</dd>
+              </div>
+              {/* Contact details are visible here because recruiter access is already gated to verified only. */}
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">Email</dt>
+                <dd className="text-gray-900 dark:text-white">{profile.email}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500 dark:text-gray-400">Phone / WhatsApp</dt>
+                <dd className="text-gray-900 dark:text-white">{profile.phoneWhatsApp || 'Not specified'}</dd>
+              </div>
+            </dl>
+          </div>
+
           {/* Header */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 mb-6">
             <div className="flex items-center justify-between">

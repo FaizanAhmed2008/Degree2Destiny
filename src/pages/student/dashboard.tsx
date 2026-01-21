@@ -7,7 +7,8 @@ import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
 import SkillCard from '../../components/SkillCard';
 import AIInsightsCard from '../../components/AIInsightsCard';
-import { getStudentProfile, generateStudentInsights } from '../../services/studentService';
+import VerificationCard from '../../components/VerificationCard';
+import { getStudentProfile, generateStudentInsights, onStudentVerificationUpdate } from '../../services/studentService';
 import { StudentProfile, StudentSkill, AIInsights } from '../../types';
 import {
   LineChart,
@@ -49,7 +50,10 @@ const StudentDashboard = () => {
           return;
         }
 
-        if (!studentProfile.onboardingCompleted) {
+        const registrationOk = Boolean(
+          (studentProfile as any).registrationCompleted || studentProfile.onboardingCompleted
+        );
+        if (!registrationOk) {
           router.push('/student/onboarding');
           return;
         }
@@ -64,14 +68,37 @@ const StudentDashboard = () => {
           // Generate insights in background
           generateStudentInsights(currentUser.uid).catch(console.error);
         }
+
+        // Set up real-time listener for verification status updates
+        const unsubscribe = onStudentVerificationUpdate(
+          currentUser.uid,
+          (updatedStudent) => {
+            console.log('[State Sync] Student profile updated via real-time listener');
+            setProfile(updatedStudent);
+          },
+          (error) => {
+            console.error('[State Sync Error] Failed to listen for updates:', error);
+          }
+        );
+
+        // Cleanup listener on unmount
+        return () => {
+          unsubscribe();
+        };
       } catch (error) {
-        console.error('Error loading profile:', error);
+        console.error('[Firestore Read Error] Error loading profile:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadProfile();
+    const cleanup = loadProfile();
+    return () => {
+      // Handle cleanup if it's a promise
+      if (cleanup instanceof Promise) {
+        cleanup.catch(console.error);
+      }
+    };
   }, [currentUser, router]);
 
   const handleRefreshInsights = async () => {
@@ -469,6 +496,15 @@ const StudentDashboard = () => {
 
             {/* Right Column - Sidebar */}
             <div className="space-y-6">
+              {/* Verification Status Card */}
+              <VerificationCard 
+                profile={profile}
+                loading={loading}
+                onVerificationRequested={() => {
+                  console.log('[UI] Verification requested, profile will auto-update via real-time listener');
+                }}
+              />
+
               {/* Quick Actions */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-colors duration-200">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Quick Actions</h3>

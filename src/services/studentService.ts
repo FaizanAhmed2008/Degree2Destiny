@@ -9,7 +9,8 @@ import {
   where, 
   getDocs,
   serverTimestamp,
-  Timestamp
+  Timestamp,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { StudentProfile, StudentSkill, Assessment, AssessmentSubmission, JobReadinessLevel } from '../types';
@@ -114,6 +115,8 @@ export async function saveStudentProfile(profile: Partial<StudentProfile>): Prom
       updateData.createdAt = serverTimestamp();
       updateData.onboardingCompleted = false;
       updateData.onboardingStep = 0;
+      updateData.registrationCompleted = false;
+      updateData.verificationStatus = 'pending';
       updateData.jobReadinessScore = 0;
       updateData.jobReadinessLevel = 'not-ready';
       updateData.skills = [];
@@ -149,9 +152,9 @@ export async function saveStudentSkill(
     
     const existingIndex = skills.findIndex(s => s.id === skill.id);
     if (existingIndex >= 0) {
-      skills[existingIndex] = { ...skill, lastUpdated: serverTimestamp() };
+      skills[existingIndex] = { ...skill };
     } else {
-      skills.push({ ...skill, lastUpdated: serverTimestamp() });
+      skills.push({ ...skill });
     }
     
     // Recalculate readiness score
@@ -372,6 +375,253 @@ export async function getVerificationRequests(
     return data.requests || [];
   } catch (error) {
     console.error('Error getting verification requests:', error);
+    throw error;
+  }
+}
+
+/**
+ * Request student verification (student-initiated)
+ * Updates verificationStatus to PENDING and sets requestedAt timestamp
+ */
+export async function requestStudentVerification(studentId: string): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('[Firestore Read] Student not found');
+    }
+
+    const studentData = studentDoc.data() as StudentProfile;
+
+    // Check if already verified or pending
+    if (studentData.verificationStatus === 'pending') {
+      throw new Error('Verification request already pending');
+    }
+    if (studentData.verificationStatus === 'verified') {
+      throw new Error('Student already verified');
+    }
+
+    await updateDoc(studentRef, {
+      verificationStatus: 'pending',
+      requestedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log('[Firestore Write] Verification request submitted for student:', studentId);
+  } catch (error) {
+    console.error('[Firestore Write Error] Failed to request verification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Approve student verification (professor-initiated)
+ * Updates verificationStatus to VERIFIED, sets verifiedAt and verifiedBy
+ */
+export async function approveStudentVerification(
+  studentId: string,
+  professorId: string
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('[Firestore Read] Student not found');
+    }
+
+    await updateDoc(studentRef, {
+      verificationStatus: 'verified',
+      verifiedAt: serverTimestamp(),
+      verifiedBy: professorId,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log('[Firestore Write] Student verified by professor:', {
+      studentId,
+      professorId,
+    });
+  } catch (error) {
+    console.error('[Firestore Write Error] Failed to approve verification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reject student verification (professor-initiated)
+ * Updates verificationStatus to REJECTED, sets verifiedAt and verifiedBy
+ */
+export async function rejectStudentVerification(
+  studentId: string,
+  professorId: string,
+  reason?: string
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('[Firestore Read] Student not found');
+    }
+
+    const updateData: any = {
+      verificationStatus: 'rejected',
+      verifiedAt: serverTimestamp(),
+      verifiedBy: professorId,
+      updatedAt: serverTimestamp(),
+    };
+
+    // Optional: Store rejection reason as a separate field or in a log
+    if (reason) {
+      updateData.rejectionReason = reason;
+      updateData.rejectionAt = serverTimestamp();
+    }
+
+    await updateDoc(studentRef, updateData);
+
+    console.log('[Firestore Write] Student verification rejected by professor:', {
+      studentId,
+      professorId,
+      reason,
+    });
+  } catch (error) {
+    console.error('[Firestore Write Error] Failed to reject verification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get students with pending verification requests
+ */
+export async function getPendingVerificationRequests(
+  professorId?: string
+): Promise<StudentProfile[]> {
+  try {
+    const studentsRef = collection(db, 'students');
+    const q = query(studentsRef, where('verificationStatus', '==', 'pending'));
+    const querySnapshot = await getDocs(q);
+
+    const students: StudentProfile[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data() as StudentProfile;
+      // Filter by professor if specified (optional - for assigned students)
+      if (!professorId || !data.assignedProfessorId || data.assignedProfessorId === professorId) {
+        students.push({
+          ...data,
+          uid: data.uid || docSnap.id,
+        });
+      }
+    });
+
+    console.log('[Firestore Read] Fetched pending verification requests:', {
+      count: students.length,
+    });
+    return students;
+  } catch (error) {
+    console.error('[Firestore Read Error] Failed to get pending verification requests:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get students with verified status
+ */
+export async function getVerifiedStudents(): Promise<StudentProfile[]> {
+  try {
+    const studentsRef = collection(db, 'students');
+    const q = query(studentsRef, where('verificationStatus', '==', 'verified'));
+    const querySnapshot = await getDocs(q);
+
+    const students: StudentProfile[] = [];
+    querySnapshot.forEach((docSnap) => {
+      const data = docSnap.data() as StudentProfile;
+      students.push({
+        ...data,
+        uid: data.uid || docSnap.id,
+      });
+    });
+
+    console.log('[Firestore Read] Fetched verified students:', {
+      count: students.length,
+    });
+    return students;
+  } catch (error) {
+    console.error('[Firestore Read Error] Failed to get verified students:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to real-time student verification updates
+ * Returns unsubscribe function
+ */
+export function onStudentVerificationUpdate(
+  studentId: string,
+  onUpdate: (student: StudentProfile) => void,
+  onError?: (error: Error) => void
+): () => void {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+
+    const unsubscribe = onSnapshot(studentRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as StudentProfile;
+        onUpdate({
+          ...data,
+          uid: data.uid || docSnap.id,
+        });
+      }
+    },
+    (error) => {
+      console.error('[State Sync Error] Real-time listener error:', error);
+      if (onError) onError(error);
+    });
+
+    console.log('[State Sync] Real-time listener registered for student:', studentId);
+    return unsubscribe;
+  } catch (error) {
+    console.error('[State Sync Error] Failed to subscribe to verification updates:', error);
+    throw error;
+  }
+}
+
+/**
+ * Subscribe to real-time pending verification requests
+ * Returns unsubscribe function
+ */
+export function onPendingVerificationsUpdate(
+  onUpdate: (students: StudentProfile[]) => void,
+  onError?: (error: Error) => void,
+  professorId?: string
+): () => void {
+  try {
+    const studentsRef = collection(db, 'students');
+    const q = query(studentsRef, where('verificationStatus', '==', 'pending'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const students: StudentProfile[] = [];
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data() as StudentProfile;
+        // Filter by professor if specified
+        if (!professorId || !data.assignedProfessorId || data.assignedProfessorId === professorId) {
+          students.push({
+            ...data,
+            uid: data.uid || docSnap.id,
+          });
+        }
+      });
+      onUpdate(students);
+    },
+    (error) => {
+      console.error('[State Sync Error] Real-time listener error:', error);
+      if (onError) onError(error);
+    });
+
+    console.log('[State Sync] Real-time listener registered for pending verifications');
+    return unsubscribe;
+  } catch (error) {
+    console.error('[State Sync Error] Failed to subscribe to pending verifications:', error);
     throw error;
   }
 }

@@ -10,7 +10,7 @@ import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
 
 // User role type
-export type UserRole = 'student' | 'professor' | 'recruiter' | 'company'; // 'company' kept for backward compatibility
+export type UserRole = 'student' | 'professor' | 'recruiter';
 
 // User profile interface
 export interface UserProfile {
@@ -92,11 +92,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const userDoc = await getDoc(doc(db, 'users', uid));
       if (userDoc.exists()) {
-        const profileData = userDoc.data() as UserProfile;
+        const rawProfileData = userDoc.data() as UserProfile & { role?: unknown };
+
+        // Normalize roles to the only supported set:
+        // - student
+        // - professor
+        // - recruiter (HR)
+        const allowedRoles: UserRole[] = ['student', 'professor', 'recruiter'];
+        const normalizedRole = allowedRoles.includes(rawProfileData.role as UserRole)
+          ? (rawProfileData.role as UserRole)
+          : ('recruiter' as UserRole);
+
+        const profileData: UserProfile = {
+          ...rawProfileData,
+          role: normalizedRole,
+        };
+
+        // If an older/unknown role exists in Firestore, migrate it forward.
+        if ((rawProfileData.role as any) !== normalizedRole) {
+          await setDoc(doc(db, 'users', uid), profileData, { merge: true });
+        }
+
         setUserProfile(profileData);
-        console.log('User profile fetched:', profileData); // Added logging
       } else {
-        console.warn('User profile not found in Firestore for UID:', uid); // Added logging
         setUserProfile(null); // Ensure profile is null if not found
       }
     } catch (error) {
