@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
+import StudentStatusPanel from '../../components/StudentStatusPanel';
 import { useRouter } from 'next/router';
 import { saveStudentProfile } from '../../services/studentService';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -236,6 +237,15 @@ const StudentProfile = () => {
                 <p className="text-sm text-purple-700 dark:text-purple-400 mt-1">Contact support</p>
               </button>
             </div>
+
+            {/* Status and Visibility Panel */}
+            <StudentStatusPanel 
+              studentId={currentUser.uid}
+              onStatusUpdated={() => {
+                // Refresh profile
+                getStudentProfile(currentUser.uid);
+              }}
+            />
           </div>
         </div>
       </div>

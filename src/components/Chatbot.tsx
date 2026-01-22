@@ -114,48 +114,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
     setInput('');
     setIsTyping(true);
 
-    try {
-      // Try to use Destiny AI service, fallback to rule-based if it fails
-      const response = await fetch('/api/destiny-ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: currentInput,
-          role,
-          contextData: {},
-        }),
-        // Add timeout
-        signal: AbortSignal.timeout(10000), // 10 second timeout
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Check if response contains error or fallback message
-        let responseText = data.response || getAIResponse(currentInput);
-        
-        // If AI returns configuration error, use rule-based response instead
-        if (responseText.includes('not fully configured') || 
-            responseText.includes('API key') ||
-            responseText.includes('unexpected error')) {
-          console.warn('[Destiny AI] AI returned error message, using rule-based fallback');
-          responseText = getAIResponse(currentInput);
-        }
-        
-        const aiResponse: Message = {
-          id: (Date.now() + 1).toString(),
-          text: responseText,
-          sender: 'ai',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, aiResponse]);
-      } else {
-        console.error('[Destiny AI] HTTP error from API:', response.status);
-        throw new Error('Destiny AI service unavailable');
-      }
-    } catch (error) {
-      console.error('[Destiny AI] Error, using rule-based response:', error);
-      // Fallback to rule-based responses - always works
+    // Simulate AI response with rule-based logic (no external API calls)
+    setTimeout(() => {
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         text: getAIResponse(currentInput),
@@ -163,9 +123,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ role }) => {
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, aiResponse]);
-    } finally {
       setIsTyping(false);
-    }
+    }, 800); // Small delay for natural feel
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {

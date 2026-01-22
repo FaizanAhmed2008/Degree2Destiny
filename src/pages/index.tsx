@@ -217,16 +217,16 @@ const Home = () => {
               </p>
             </div>
 
-            {/* Feature 2 - Destiny AI Career Guidance */}
+            {/* Feature 2 - Job Matching */}
             <div className="bg-white dark:bg-gray-900 rounded-xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center mb-6 mx-auto">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Destiny AI Career Guidance</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4 text-center">Job Matching</h3>
               <p className="text-gray-600 dark:text-gray-400 text-center">
-                Get AI-powered career advice and personalized recommendations to navigate your career path
+                Connect with relevant opportunities that match your skills and career goals
               </p>
             </div>
 
@@ -534,12 +534,6 @@ const Home = () => {
             />
 
             {/* FAQ Item 5 */}
-            <FAQItem
-              question="How does Destiny AI assist students?"
-              answer="Destiny AI is your career copilot that provides personalized guidance on skill improvement, career planning, and next steps. It analyzes your profile, identifies strengths and weaknesses, suggests learning paths, and answers questions about the platform. Destiny AI offers role-specific assistance for students, professors, and recruiters."
-            />
-
-            {/* FAQ Item 6 */}
             <FAQItem
               question="Who can access dashboards?"
               answer="The platform has three main user roles: Students can access their personal dashboard with skill tracking and progress analytics. Professors can view their assigned students' progress and manage assessments. Recruiters can browse verified candidate profiles and shortlist potential hires. Each role has specific permissions and dashboard features tailored to their needs."

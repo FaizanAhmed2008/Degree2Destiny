@@ -6,7 +6,8 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
 import { getStudentProfile } from '../../services/studentService';
 import { submitAssessment } from '../../services/studentService';
-import { StudentProfile, Assessment, AssessmentType } from '../../types';
+import { getAvailableCareerTests } from '../../services/careerTestService';
+import { StudentProfile, Assessment, AssessmentType, Test } from '../../types';
 import { doc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
 
@@ -18,6 +19,7 @@ const StudentAssessments = () => {
   const [selectedAssessment, setSelectedAssessment] = useState<Assessment | null>(null);
   const [submissionContent, setSubmissionContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [careerTests, setCareerTests] = useState<Test[]>([]);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -38,6 +40,12 @@ const StudentAssessments = () => {
         }
 
         setProfile(studentProfile);
+
+        // Load career tests
+        if (studentProfile.preferredRoles && studentProfile.preferredRoles.length > 0) {
+          const tests = await getAvailableCareerTests(studentProfile.preferredRoles);
+          setCareerTests(tests);
+        }
       } catch (error) {
         console.error('Error loading profile:', error);
       } finally {
@@ -114,10 +122,10 @@ const StudentAssessments = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Skill Assessments
+              Learning & Assessment Hub
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              Complete assessments to verify and improve your skills.
+              Complete skill assessments, AI-powered interviews, and career-oriented tests to enhance your profile.
             </p>
           </div>
 
@@ -132,11 +140,46 @@ const StudentAssessments = () => {
             />
           ) : (
             <div className="space-y-6">
+              {/* Career-Oriented Tests */}
+              {careerTests.length > 0 && (
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                    🎯 Career-Oriented Tests
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {careerTests.map((test) => (
+                      <div
+                        key={test.id}
+                        className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+                      >
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                          {test.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                          {test.description}
+                        </p>
+                        <div className="flex justify-between items-center mb-4">
+                          <div className="text-sm text-gray-500 dark:text-gray-400">
+                            <span className="font-semibold">{test.duration}</span> min • Questions: <span className="font-semibold">{test.questions.length}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => router.push('/student/tests')}
+                          className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold transition-colors"
+                        >
+                          Take Test
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Pending Assessments */}
               {pendingAssessments.length > 0 && (
                 <div>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
-                    Available Assessments ({pendingAssessments.length})
+                    📝 Skill Assessments ({pendingAssessments.length})
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {pendingAssessments.map((assessment) => (

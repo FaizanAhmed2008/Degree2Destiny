@@ -14,7 +14,6 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { StudentProfile, StudentSkill, Assessment, AssessmentSubmission, JobReadinessLevel } from '../types';
-import { analyzeStudentSkills, generateLearningRoadmap, generateImprovementSuggestions } from './aiService';
 
 // Utility to generate a random score between 40 and 100 (inclusive)
 const generateRandomScore = () => Math.floor(40 + Math.random() * 61);
@@ -252,40 +251,39 @@ export async function submitAssessment(
 }
 
 /**
- * Generate AI insights for student
+ * Generate insights for student (rule-based, no AI)
  */
 export async function generateStudentInsights(studentId: string): Promise<void> {
   try {
     const studentProfile = await getStudentProfile(studentId);
     if (!studentProfile) throw new Error('Student not found');
     
-    const insights = await analyzeStudentSkills({
-      skills: (studentProfile.skills || []).map(s => ({
-        name: s.name,
-        score: s.score,
-        category: s.category,
-      })),
-      projects: (studentProfile.projects || []).map(p => ({
-        title: p.title,
-        technologies: p.technologies || [],
-      })),
-      careerInterests: studentProfile.careerInterests || [],
-      preferredRoles: studentProfile.preferredRoles || [],
-    });
+    // Rule-based analysis - no API calls
+    const skills = studentProfile.skills || [];
+    const weaknesses = skills.filter(s => s.score < 60).map(s => s.name);
+    const strengths = skills.filter(s => s.score >= 80).map(s => s.name);
     
-    // Generate learning roadmap
-    const weaknesses = insights.weaknesses;
-    const targetRole = insights.suggestedRoles[0]?.role || studentProfile.preferredRoles[0] || 'Software Developer';
-    const roadmap = await generateLearningRoadmap(weaknesses, targetRole);
+    // Generate basic insights without AI
+    const insights = {
+      strengths,
+      weaknesses,
+      suggestedRoles: studentProfile.preferredRoles || ['Software Developer', 'Full Stack Developer'],
+      learningRoadmap: weaknesses.length > 0 ? [
+        {
+          skill: weaknesses[0],
+          level: 'Intermediate',
+          estimatedTime: '4-6 weeks',
+          resources: [],
+        },
+      ] : [],
+      summary: `You have ${strengths.length} strong skills and ${weaknesses.length} areas for improvement.`,
+      lastAnalyzed: new Date().toISOString(),
+    };
     
     // Update student profile with insights
     const studentRef = doc(db, 'students', studentId);
     await updateDoc(studentRef, {
-      aiInsights: {
-        ...insights,
-        learningRoadmap: roadmap,
-        lastAnalyzed: serverTimestamp(),
-      },
+      aiInsights: insights,
       updatedAt: serverTimestamp(),
     });
   } catch (error) {
@@ -295,7 +293,7 @@ export async function generateStudentInsights(studentId: string): Promise<void> 
 }
 
 /**
- * Get improvement suggestions for a skill
+ * Get improvement suggestions for a skill (rule-based, no AI)
  */
 export async function getSkillImprovementSuggestions(
   skillName: string,
@@ -306,7 +304,23 @@ export async function getSkillImprovementSuggestions(
   resources: Array<{ title: string; url: string; type: string }>;
   timeline: string;
 }> {
-  return await generateImprovementSuggestions(skillName, currentScore, targetScore);
+  // Rule-based suggestions based on skill name and score
+  const improvementGap = targetScore - currentScore;
+  
+  return {
+    actionItems: [
+      `Focus on ${skillName} fundamentals`,
+      `Build practice projects using ${skillName}`,
+      `Review common patterns and best practices`,
+      `Take on more complex tasks gradually`,
+    ],
+    resources: [
+      { title: `Learn ${skillName}`, url: '#', type: 'learning' },
+      { title: `${skillName} Best Practices`, url: '#', type: 'guide' },
+      { title: 'Practice Problems', url: '#', type: 'practice' },
+    ],
+    timeline: improvementGap > 30 ? '8-12 weeks' : improvementGap > 15 ? '4-8 weeks' : '2-4 weeks',
+  };
 }
 
 /**
@@ -622,6 +636,212 @@ export function onPendingVerificationsUpdate(
     return unsubscribe;
   } catch (error) {
     console.error('[State Sync Error] Failed to subscribe to pending verifications:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// STUDENT STATUS & VISIBILITY
+// ============================================
+
+/**
+ * Update student status (Ready/Building/Studying/Looking)
+ */
+export async function updateStudentStatus(
+  studentId: string,
+  status: 'ready-to-work' | 'skill-building' | 'studying' | 'actively-looking'
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    await updateDoc(studentRef, {
+      studentStatus: status,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating student status:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update profile visibility
+ */
+export async function updateProfileVisibility(
+  studentId: string,
+  visibility: 'visible-to-all' | 'visible-to-hr' | 'visible-to-professor' | 'hidden'
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    await updateDoc(studentRef, {
+      profileVisibility: visibility,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating profile visibility:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get student visibility status (checks if visible to a specific role)
+ */
+export function canViewStudent(
+  studentProfile: StudentProfile | null,
+  viewerRole: 'student' | 'professor' | 'recruiter'
+): boolean {
+  if (!studentProfile) return false;
+
+  const visibility = studentProfile.profileVisibility || 'visible-to-all';
+
+  if (visibility === 'hidden') return false;
+  if (visibility === 'visible-to-all') return true;
+  if (visibility === 'visible-to-hr' && viewerRole === 'recruiter') return true;
+  if (visibility === 'visible-to-professor' && viewerRole === 'professor') return true;
+
+  return false;
+}
+
+// ============================================
+// ACCOUNT DELETION
+// ============================================
+
+/**
+ * Completely delete student account and all associated data
+ */
+export async function deleteStudentAccount(studentId: string): Promise<void> {
+  try {
+    // Delete student document
+    const studentRef = doc(db, 'students', studentId);
+    await updateDoc(studentRef, {
+      deletedAt: serverTimestamp(),
+      isDeleted: true,
+    });
+
+    // In production, you might also delete:
+    // - Test attempts
+    // - Messages/conversations
+    // - Verification requests
+    // - Interview transcripts
+    // etc.
+
+    console.log(`Student account ${studentId} marked for deletion`);
+  } catch (error) {
+    console.error('Error deleting student account:', error);
+    throw error;
+  }
+}
+
+// ============================================
+// SKILL-SPECIFIC VERIFICATION
+// ============================================
+
+/**
+ * Verify a specific skill (not just overall verification)
+ */
+export async function verifySkill(
+  studentId: string,
+  skillId: string,
+  professorId: string,
+  feedback?: string
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('Student not found');
+    }
+
+    const student = studentDoc.data() as StudentProfile;
+    const skills = student.skills || [];
+
+    // Find and update the skill
+    const updatedSkills = skills.map((skill) => {
+      if (skill.id === skillId) {
+        return {
+          ...skill,
+          verificationStatus: 'verified' as const,
+          verifiedBy: professorId,
+          verifiedAt: serverTimestamp(),
+        };
+      }
+      return skill;
+    });
+
+    await updateDoc(studentRef, {
+      skills: updatedSkills,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(`Skill ${skillId} verified for student ${studentId}`);
+  } catch (error) {
+    console.error('Error verifying skill:', error);
+    throw error;
+  }
+}
+
+/**
+ * Reject a specific skill verification
+ */
+export async function rejectSkillVerification(
+  studentId: string,
+  skillId: string,
+  feedback?: string
+): Promise<void> {
+  try {
+    const studentRef = doc(db, 'students', studentId);
+    const studentDoc = await getDoc(studentRef);
+
+    if (!studentDoc.exists()) {
+      throw new Error('Student not found');
+    }
+
+    const student = studentDoc.data() as StudentProfile;
+    const skills = student.skills || [];
+
+    // Find and update the skill
+    const updatedSkills = skills.map((skill) => {
+      if (skill.id === skillId) {
+        return {
+          ...skill,
+          verificationStatus: 'rejected' as const,
+        };
+      }
+      return skill;
+    });
+
+    await updateDoc(studentRef, {
+      skills: updatedSkills,
+      updatedAt: serverTimestamp(),
+    });
+
+    console.log(`Skill ${skillId} rejected for student ${studentId}`);
+  } catch (error) {
+    console.error('Error rejecting skill verification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get students visible to a specific role
+ */
+export async function getVisibleStudents(viewerRole: 'professor' | 'recruiter'): Promise<StudentProfile[]> {
+  try {
+    const studentsRef = collection(db, 'students');
+    const q = query(studentsRef);
+    const snapshot = await getDocs(q);
+
+    const students: StudentProfile[] = [];
+    snapshot.forEach((doc) => {
+      const student = doc.data() as StudentProfile;
+      if (canViewStudent(student, viewerRole)) {
+        students.push(student);
+      }
+    });
+
+    return students;
+  } catch (error) {
+    console.error('Error getting visible students:', error);
     throw error;
   }
 }

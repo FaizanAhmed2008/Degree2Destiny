@@ -7,7 +7,6 @@ import Navbar from '../../components/Navbar';
 import Chatbot from '../../components/Chatbot';
 import VerificationRequests from '../../components/VerificationRequests';
 import { getStudentProfile, getVerificationRequests, getPendingVerificationRequests, onPendingVerificationsUpdate } from '../../services/studentService';
-import { generateProfessorFeedback } from '../../services/aiService';
 import { StudentProfile, AssessmentSubmission, ProfessorFeedback } from '../../types';
 import { collection, query, where, getDocs, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/firebaseConfig';
@@ -915,22 +914,28 @@ const SubmissionReviewModal: React.FC<{
     setAiGenerating(true);
     try {
       // Find the assessment
-      const assessment = (student.skills || []) // Ensure skills array exists
-        .flatMap(s => s.assessments || []) // Ensure assessments array exists
+      const assessment = (student.skills || [])
+        .flatMap(s => s.assessments || [])
         .find(a => a.id === submission.assessmentId);
 
       if (assessment) {
-      const aiFeedback = await generateProfessorFeedback({
-        content: submission.content || '',
-        assessmentTitle: assessment?.title || 'Assessment',
-        studentSkillLevel: 'intermediate', // Could be derived from student's skill level
-      });
-
-        setFeedback(aiFeedback.feedback);
-        setScore(aiFeedback.score);
+        // Generate rule-based feedback
+        const contentLength = submission.content?.length || 0;
+        const wordCount = submission.content?.split(/\s+/).length || 0;
+        
+        const baseFeedback = contentLength > 500 
+          ? 'Well-detailed response. Good effort in explaining concepts.'
+          : contentLength > 200
+          ? 'Response covers basic concepts. Consider adding more depth and examples.'
+          : 'Response is brief. Please provide more comprehensive answers with examples.';
+        
+        const generatedScore = Math.min(100, Math.max(50, Math.round(50 + (wordCount / 20))));
+        
+        setFeedback(baseFeedback);
+        setScore(generatedScore);
       }
     } catch (error) {
-      console.error('Error generating AI feedback:', error);
+      console.error('Error generating feedback:', error);
     } finally {
       setAiGenerating(false);
     }

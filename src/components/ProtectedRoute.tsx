@@ -6,13 +6,17 @@ import { UserRole } from '../context/AuthContext';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: UserRole[];
+  allowedRoles?: UserRole[];
+  requiredRole?: UserRole;
 }
 
 // Component to protect routes based on authentication and role
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles, requiredRole }) => {
   const { currentUser, userProfile, loading } = useAuth();
   const router = useRouter();
+  
+  // Convert requiredRole to allowedRoles if needed
+  const roles = allowedRoles || (requiredRole ? [requiredRole] : []);
 
   useEffect(() => {
     if (!loading) {
@@ -29,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       }
 
       // Redirect to appropriate dashboard if role doesn't match
-      if (!allowedRoles.includes(userProfile.role)) {
+      if (!roles.includes(userProfile.role)) {
         switch (userProfile.role) {
           case 'student':
             router.push('/student/dashboard');
@@ -45,7 +49,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
         }
       }
     }
-  }, [currentUser, userProfile, loading, allowedRoles, router]);
+  }, [currentUser, userProfile, loading, roles, router]);
 
   // Show loading state while checking auth
   if (loading) {
@@ -57,7 +61,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   // Show nothing while redirecting
-  if (!currentUser || !userProfile || !allowedRoles.includes(userProfile.role)) {
+  if (!currentUser || !userProfile || !roles.includes(userProfile.role)) {
     return null;
   }
 

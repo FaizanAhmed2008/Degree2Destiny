@@ -25,6 +25,7 @@ import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentProfile, saveStudentProfile } from '../../services/studentService';
+import { createInitialAssessment } from '../../services/initialAssessmentService';
 import { StudentProfile } from '../../types';
 import { db } from '../../firebase/firebaseConfig';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -128,7 +129,9 @@ const StudentOnboarding = () => {
       // Keep AuthContext/user menus consistent.
       await updateDoc(doc(db, 'users', currentUser.uid), { displayName: payload.displayName });
 
-      router.push('/student/dashboard');
+      // Create initial assessment and redirect to it
+      const assessmentId = await createInitialAssessment(currentUser.uid);
+      router.push(`/student/initial-assessment/${assessmentId}`);
     } catch (e) {
       console.error('Error saving student registration:', e);
       setError('Failed to save registration. Please try again.');

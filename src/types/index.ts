@@ -12,6 +12,10 @@ export type VerificationStatus = 'not-requested' | 'pending' | 'verified' | 'rej
 
 export type JobReadinessLevel = 'not-ready' | 'developing' | 'ready' | 'highly-ready';
 
+export type StudentStatus = 'ready-to-work' | 'skill-building' | 'studying' | 'actively-looking';
+
+export type ProfileVisibility = 'visible-to-all' | 'visible-to-hr' | 'visible-to-professor' | 'hidden';
+
 // User Profile
 export interface UserProfile {
   uid: string;
@@ -75,6 +79,12 @@ export interface StudentProfile extends UserProfile {
   aiInsights?: AIInsights;
   // Professor Assignment
   assignedProfessorId?: string;
+  // NEW: Student Status & Visibility
+  studentStatus?: StudentStatus;
+  profileVisibility?: ProfileVisibility;
+  // NEW: Initial Assessment Results
+  initialAssessmentCompleted?: boolean;
+  initialAssessmentResults?: InitialAssessmentResult;
 }
 
 // Student Skill with Verification
@@ -324,4 +334,154 @@ export interface StudentAnalytics {
   skillProgress: { skillId: string; progress: { date: any; score: number }[] }[];
   assessmentCompletionRate: number;
   verificationRate: number;
+}
+// ============================================
+// TEST MODULE TYPES
+// ============================================
+
+export type TestType = 'MCQ' | 'APTITUDE' | 'COMMUNICATION';
+
+// Test Question Base
+export interface TestQuestion {
+  id: string;
+  questionNumber: number;
+  question: string;
+  type: TestType;
+  weight: number; // Marks weightage for this question
+  difficulty: 'easy' | 'medium' | 'hard';
+  // For MCQ and Aptitude tests
+  options?: string[]; // Array of options
+  correctAnswer?: number; // Index of correct option (0-based)
+  // For Communication tests
+  scenario?: string; // Additional context/scenario
+  minLength?: number; // Minimum character length for valid answer
+}
+
+// Complete Test Definition
+export interface Test {
+  id: string;
+  title: string;
+  description: string;
+  type: TestType;
+  duration: number; // in minutes
+  passingScore: number; // Percentage (e.g., 50)
+  totalMarks: number; // 100 (default)
+  instructions: string;
+  questions: TestQuestion[];
+  createdAt: any;
+  updatedAt: any;
+  createdBy: string; // Admin/Professor UID
+  isActive: boolean;
+}
+
+// Student's Test Attempt
+export interface StudentTestAttempt {
+  id: string;
+  studentId: string;
+  testId: string;
+  testType: TestType;
+  startedAt: any;
+  submittedAt?: any;
+  answers: StudentAnswer[]; // Answers to questions
+  // Scores
+  mcqScore?: number;
+  aptitudeScore?: number;
+  communicationScore?: number;
+  totalScore?: number;
+  totalMarks?: number;
+  percentage?: number;
+  passed?: boolean;
+  // Status
+  status: 'in-progress' | 'submitted' | 'evaluated';
+}
+
+// Student's Answer to a Question
+export interface StudentAnswer {
+  questionId: string;
+  questionNumber: number;
+  questionText: string;
+  type: TestType;
+  // For MCQ and Aptitude: selected option index
+  selectedOption?: number;
+  // For Communication: written answer
+  writtenAnswer?: string;
+  // Evaluation
+  isCorrect?: boolean;
+  marksObtained?: number;
+  maxMarks?: number;
+  feedback?: string;
+  // Metadata
+  answeredAt?: any;
+  timeTaken?: number; // seconds
+}
+
+// Test Result Summary
+export interface TestResult {
+  id: string;
+  studentId: string;
+  testId: string;
+  testTitle: string;
+  testType: TestType;
+  mcqScore?: number;
+  aptitudeScore?: number;
+  communicationScore?: number;
+  totalScore: number;
+  totalMarks: number;
+  percentage: number;
+  passed: boolean;
+  attemptedAt: any;
+  submittedAt: any;
+  detailedResults: StudentAnswer[];
+  feedback?: string;
+}
+
+// Test Statistics (for analytics)
+export interface TestStatistics {
+  testId: string;
+  testTitle: string;
+  totalAttempts: number;
+  averageScore: number;
+  passRate: number; // Percentage
+  highestScore: number;
+  lowestScore: number;
+  averageTimeTaken: number; // in seconds
+  questionAnalysis: {
+    questionId: string;
+    question: string;
+    correctCount: number;
+    totalAttempts: number;
+    difficulty: number; // percentage of students who got it wrong
+  }[];
+}
+
+// Initial Assessment Result (taken during registration)
+export interface InitialAssessmentResult {
+  attemptId: string;
+  completedAt: any;
+  aptitudeScore: number;
+  communicationScore: number;
+  logicalReasoningScore: number;
+  totalScore: number;
+  feedback: string;
+}
+
+// Career Oriented Test Question
+export interface CareerOrientedTestQuestion extends TestQuestion {
+  careerRole: string;
+  skillsRequired: string[];
+  interestAreas: string[];
+}
+
+// Career Oriented Test
+export interface CareerOrientedTest extends Test {
+  careerRoles: string[];
+  skillsAssessed: string[];
+  interestAreas: string[];
+}
+
+// Skill-Specific Test Result
+export interface SkillTestResult extends TestResult {
+  skillId: string;
+  skillName: string;
+  skillCategory: string;
 }

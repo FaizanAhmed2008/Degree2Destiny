@@ -4,9 +4,8 @@ import { useRouter } from 'next/router';
 import { useAuth } from '../../context/AuthContext';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import Navbar from '../../components/Navbar';
-import AIInterview from '../../components/AIInterview';
 import { deleteStudentSkill, getStudentProfile, saveStudentSkill, sendSkillVerificationRequest } from '../../services/studentService';
-import { StudentProfile, StudentSkill, SkillLevel, InterviewEvaluation } from '../../types';
+import { StudentProfile, StudentSkill, SkillLevel } from '../../types';
 import { serverTimestamp } from 'firebase/firestore';
 
 const SkillsManage = () => {
@@ -24,10 +23,8 @@ const SkillsManage = () => {
   const [skillScore, setSkillScore] = useState(50);
   const [proofLinks, setProofLinks] = useState('');
   
-  // AI Interview state
+  // UI state
   const [showAddSkillOptions, setShowAddSkillOptions] = useState(false);
-  const [showAIInterview, setShowAIInterview] = useState(false);
-  const [interviewSkillName, setInterviewSkillName] = useState('');
   const [interviewSkillLevel, setInterviewSkillLevel] = useState<SkillLevel>('beginner');
 
   useEffect(() => {
@@ -222,62 +219,6 @@ const SkillsManage = () => {
     setShowAddSkillOptions(false);
   };
 
-  const handleStartAIInterview = () => {
-    if (!skillName.trim()) {
-      alert('Please enter a skill name first');
-      return;
-    }
-    setInterviewSkillName(skillName.trim());
-    setInterviewSkillLevel(skillLevel);
-    setShowAIInterview(true);
-  };
-
-  const handleAIInterviewComplete = async (
-    evaluation: InterviewEvaluation,
-    transcript: any[]
-  ) => {
-    if (!currentUser) return;
-
-    setSaving(true);
-    try {
-      const newSkill: StudentSkill = {
-        id: editingSkill?.id || `skill-${Date.now()}`,
-        name: skillName.trim(),
-        category: skillCategory.trim() || 'General',
-        selfLevel: skillLevel,
-        score: evaluation.score,
-        proofLinks: proofLinks.trim() ? proofLinks.split(',').map(l => l.trim()) : [],
-        verificationStatus: 'verified',
-        verifiedBy: 'AI',
-        verifiedAt: serverTimestamp(),
-        assessments: editingSkill?.assessments || [],
-        lastUpdated: serverTimestamp(),
-        interviewTranscript: {
-          id: `transcript-${Date.now()}`,
-          skillId: editingSkill?.id || `skill-${Date.now()}`,
-          studentId: currentUser.uid,
-          skillName: skillName.trim(),
-          startedAt: serverTimestamp(),
-          completedAt: serverTimestamp(),
-          messages: transcript,
-          status: 'completed',
-        },
-        interviewEvaluation: evaluation,
-      };
-
-      await saveStudentSkill(currentUser.uid, newSkill);
-      await loadProfile();
-      resetForm();
-      setShowAIInterview(false);
-      alert('Skill verified and saved successfully!');
-    } catch (error) {
-      console.error('Error saving AI-verified skill:', error);
-      alert('Failed to save skill. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -404,20 +345,6 @@ const SkillsManage = () => {
                       </button>
                     )}
                   </div>
-
-                  {!editingSkill && (
-                    <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-2">Or verify via:</p>
-                      <button
-                        onClick={handleStartAIInterview}
-                        disabled={saving || !skillName.trim()}
-                        className="w-full px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm flex items-center justify-center gap-2"
-                      >
-                        <span>🤖</span>
-                        AI Interview
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -564,15 +491,6 @@ const SkillsManage = () => {
             </div>
           </div>
         </div>
-
-        {showAIInterview && (
-          <AIInterview
-            skillName={interviewSkillName}
-            skillLevel={interviewSkillLevel}
-            onComplete={handleAIInterviewComplete}
-            onCancel={() => setShowAIInterview(false)}
-          />
-        )}
       </div>
     </ProtectedRoute>
   );

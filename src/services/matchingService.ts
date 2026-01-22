@@ -2,7 +2,6 @@
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { StudentProfile, MatchingResult, RecruiterProfile } from '../types';
-import { matchStudentsToJob } from './aiService';
 
 /**
  * Match students to a job description
@@ -63,36 +62,35 @@ export async function matchStudentsToJobDescription(
       });
     });
     
-    // Use AI to match
-    const aiMatches = await matchStudentsToJob(jobDescription, students);
-    
-    // Combine AI matches with profile data
-    return aiMatches.map(match => {
-      const student = students.find(s => s.id === match.studentId);
-      if (!student) {
-        return {
-          studentId: match.studentId,
-          matchScore: match.matchScore,
-          reasons: match.reasons,
-          skillMatches: {},
-          recommendedFor: [],
-        };
-      }
-      
+    // Rule-based matching (no AI)
+    const matches = students.map(student => {
       // Calculate skill matches
       const skillMatches: { [skill: string]: number } = {};
       (student.skills || []).forEach(skill => {
         skillMatches[skill.name] = skill.score;
       });
       
+      // Simple matching: base on readiness score and verified skills
+      const verifiedSkillCount = student.profile.skills?.filter(s => s.verificationStatus === 'verified').length || 0;
+      const avgSkillScore = student.skills?.length ? 
+        student.skills.reduce((sum, s) => sum + s.score, 0) / student.skills.length : 0;
+      
+      const matchScore = (student.readinessScore * 0.5) + (avgSkillScore * 0.3) + (verifiedSkillCount * 5);
+      
       return {
-        studentId: match.studentId,
-        matchScore: match.matchScore,
-        reasons: match.reasons,
+        studentId: student.id,
+        matchScore: Math.min(100, matchScore),
+        reasons: [
+          `Readiness Score: ${student.readinessScore}`,
+          `Average Skill Level: ${Math.round(avgSkillScore)}`,
+          `Verified Skills: ${verifiedSkillCount}`,
+        ],
         skillMatches,
         recommendedFor: student.profile.preferredRoles || [],
       };
     }).sort((a, b) => b.matchScore - a.matchScore);
+    
+    return matches;
   } catch (error) {
     console.error('Error matching students to job:', error);
     return [];
