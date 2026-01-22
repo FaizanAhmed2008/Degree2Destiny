@@ -561,21 +561,49 @@ const CandidateCard: React.FC<{
   const topSkills = (candidate.skills || []).sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 3);
   const readinessScore = candidate.jobReadinessScore ?? 0;
 
+  // Get verification info
+  const verificationStatus = candidate.verificationStatus || 'not-requested';
+  const verifiedAt = candidate.verifiedAt ? new Date(
+    candidate.verifiedAt.seconds ? candidate.verifiedAt.seconds * 1000 : candidate.verifiedAt
+  ).toLocaleDateString() : null;
+
   return (
     <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-all hover:shadow-lg ${
       isShortlisted ? 'ring-2 ring-green-500' : ''
     }`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
-            {candidate.fullName || candidate.displayName || candidate.email?.split('@')[0] || 'Student'}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-gray-900 dark:text-white">
+              {candidate.fullName || candidate.displayName || candidate.email?.split('@')[0] || 'Student'}
+            </h3>
+            {verificationStatus === 'verified' && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded text-xs font-medium" title={`Verified by Professor on ${verifiedAt || 'N/A'}`}>
+                ✓ Verified
+              </span>
+            )}
+            {verificationStatus === 'pending' && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 rounded text-xs font-medium">
+                ⏳ Pending
+              </span>
+            )}
+            {verificationStatus === 'rejected' && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded text-xs font-medium">
+                ✗ Rejected
+              </span>
+            )}
+          </div>
           <p className="text-sm text-gray-600 dark:text-gray-400">
             {candidate.interestedRoleSkill ? candidate.interestedRoleSkill : 'Interested Role / Skill not set'}
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
             {candidate.college ? candidate.college : 'College not set'}
           </p>
+          {verifiedAt && (
+            <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+              Verified: {verifiedAt}
+            </p>
+          )}
           {(candidate.preferredRoles || []).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-2">
               {(candidate.preferredRoles || []).slice(0, 2).map((role, idx) => (

@@ -131,19 +131,33 @@ const ProfessorDashboard = () => {
     if (!currentUser) return;
 
     try {
+      console.log('[Skill Verify] Starting skill verification', { studentId, skillId, status });
+      
       const studentRef = doc(db, 'students', studentId);
       const studentDoc = await getDoc(studentRef);
       
-      if (!studentDoc.exists()) return;
+      if (!studentDoc.exists()) {
+        throw new Error('Student record not found in database');
+      }
 
       const studentData = studentDoc.data() as StudentProfile;
+      
+      if (!studentData.skills || studentData.skills.length === 0) {
+        throw new Error('Student has no skills recorded');
+      }
+
+      const skillExists = studentData.skills.some(s => s.id === skillId);
+      if (!skillExists) {
+        throw new Error('Skill not found in student record');
+      }
+
       const updatedSkills = (studentData.skills || []).map(skill => {
         if (skill.id === skillId) {
           return {
             ...skill,
             verificationStatus: status,
             verifiedBy: currentUser.uid,
-            verifiedAt: serverTimestamp(),
+            verifiedAt: new Date(),
           };
         }
         return skill;
@@ -154,31 +168,44 @@ const ProfessorDashboard = () => {
         updatedAt: serverTimestamp(),
       });
 
+      console.log('[Skill Verify] Skill updated successfully', { studentId, skillId, status });
+
       // Create feedback record
-      const feedbackRef = doc(collection(db, 'professorFeedback'));
-      await setDoc(feedbackRef, {
-        id: feedbackRef.id,
-        studentId,
-        professorId: currentUser.uid,
-        skillId,
-        verificationStatus: status,
-        createdAt: serverTimestamp(),
-        aiAssisted: false,
-      });
+      try {
+        const feedbackRef = doc(collection(db, 'professorFeedback'));
+        await setDoc(feedbackRef, {
+          id: feedbackRef.id,
+          studentId,
+          professorId: currentUser.uid,
+          skillId,
+          verificationStatus: status,
+          createdAt: serverTimestamp(),
+          aiAssisted: false,
+        });
+        console.log('[Skill Verify] Feedback record created');
+      } catch (err) {
+        console.warn('[Skill Verify] Failed to create feedback record:', err);
+        // Don't fail the entire operation if feedback fails
+      }
 
       alert(`Skill ${status === 'verified' ? 'verified' : 'rejected'} successfully!`);
       
       // Reload students
-      const updatedStudent = await getStudentProfile(studentId);
-      if (updatedStudent) {
-        setStudents(prev => prev.map(s => s.uid === studentId ? updatedStudent : s));
-        if (selectedStudent?.uid === studentId) {
-          setSelectedStudent(updatedStudent);
+      try {
+        const updatedStudent = await getStudentProfile(studentId);
+        if (updatedStudent) {
+          setStudents(prev => prev.map(s => s.uid === studentId ? updatedStudent : s));
+          if (selectedStudent?.uid === studentId) {
+            setSelectedStudent(updatedStudent);
+          }
         }
+      } catch (err) {
+        console.warn('[Skill Verify] Failed to reload student profile:', err);
+        // Don't fail - the update was successful
       }
-    } catch (error) {
-      console.error('Error verifying skill:', error);
-      alert('Failed to verify skill. Please try again.');
+    } catch (error: any) {
+      console.error('[Skill Verify] Error verifying skill:', error);
+      alert(`Failed to verify skill: ${error.message || 'Please try again.'}`);
     }
   };
 
@@ -187,6 +214,8 @@ const ProfessorDashboard = () => {
 
     setProcessingRequestId(requestId);
     try {
+      console.log('[Skill Verify API] Processing verification request', { requestId, action });
+
       const response = await fetch('/api/skills/verify-request?action=process', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -203,28 +232,40 @@ const ProfessorDashboard = () => {
         throw new Error(errorData.error || 'Failed to process request');
       }
 
+      const responseData = await response.json();
+      console.log('[Skill Verify API] Request processed successfully', responseData);
+
       // Reload requests and students
       setVerificationRequests(prev => prev.filter(r => r.id !== requestId));
-      const requests = await getVerificationRequests(undefined, currentUser.uid);
-      setVerificationRequests(requests.filter((r: any) => r.status === 'pending'));
+      
+      try {
+        const requests = await getVerificationRequests(undefined, currentUser.uid);
+        setVerificationRequests(requests.filter((r: any) => r.status === 'pending'));
+      } catch (err) {
+        console.warn('[Skill Verify] Failed to reload verification requests:', err);
+      }
 
       // Reload students to reflect updated verification status
-      const studentsRef = collection(db, 'students');
-      const studentsSnapshot = await getDocs(studentsRef);
-      const studentsList: StudentProfile[] = [];
-      studentsSnapshot.forEach((docSnap) => {
-        const data = docSnap.data() as StudentProfile;
-        studentsList.push({
-          ...data,
-          uid: data.uid || docSnap.id,
-        } as StudentProfile);
-      });
-      setStudents(studentsList);
+      try {
+        const studentsRef = collection(db, 'students');
+        const studentsSnapshot = await getDocs(studentsRef);
+        const studentsList: StudentProfile[] = [];
+        studentsSnapshot.forEach((docSnap) => {
+          const data = docSnap.data() as StudentProfile;
+          studentsList.push({
+            ...data,
+            uid: data.uid || docSnap.id,
+          } as StudentProfile);
+        });
+        setStudents(studentsList);
+      } catch (err) {
+        console.warn('[Skill Verify] Failed to reload students:', err);
+      }
 
       alert(`Skill ${action === 'verify' ? 'verified' : 'rejected'} successfully!`);
-    } catch (error) {
-      console.error('Error processing verification request:', error);
-      alert(`Failed to ${action} skill. Please try again.`);
+    } catch (error: any) {
+      console.error('[Skill Verify] Error processing verification request:', error);
+      alert(`Failed to ${action} skill: ${error.message || 'Please try again.'}`);
     } finally {
       setProcessingRequestId(null);
     }

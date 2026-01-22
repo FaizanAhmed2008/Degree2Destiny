@@ -137,6 +137,8 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
   }
 
   try {
+    console.log('[Skill Verify] Processing request:', { requestId, action });
+
     const requestRef = doc(db, 'skillVerificationRequests', requestId);
     const requestDoc = await getDoc(requestRef);
 
@@ -147,6 +149,8 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
     const requestData = requestDoc.data() as SkillVerificationRequest;
     const status = action === 'verify' ? 'verified' : 'rejected';
 
+    console.log('[Skill Verify] Request data:', { studentId: requestData.studentId, skillId: requestData.skillId });
+
     // Update the verification request
     await updateDoc(requestRef, {
       status,
@@ -154,6 +158,8 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
       processedBy: processorId,
       processorNotes: processorNotes || '',
     });
+
+    console.log('[Skill Verify] Verification request updated');
 
     // Update the student's skill verification status
     const studentRef = doc(db, 'students', requestData.studentId);
@@ -163,13 +169,16 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
       const studentData = studentDoc.data();
       const skills = studentData.skills || [];
 
+      console.log('[Skill Verify] Found student skills:', skills.length);
+
       const updatedSkills = skills.map((skill: any) => {
         if (skill.id === requestData.skillId) {
+          console.log('[Skill Verify] Updating skill:', skill.id);
           return {
             ...skill,
             verificationStatus: status,
             verifiedBy: processorId,
-            verifiedAt: serverTimestamp(),
+            verifiedAt: new Date(),
           };
         }
         return skill;
@@ -179,6 +188,10 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
         skills: updatedSkills,
         updatedAt: serverTimestamp(),
       });
+
+      console.log('[Skill Verify] Student skills updated');
+    } else {
+      console.warn('[Skill Verify] Student document not found:', requestData.studentId);
     }
 
     return res.status(200).json({
@@ -189,6 +202,6 @@ async function handleProcessRequest(req: NextApiRequest, res: NextApiResponse) {
     });
   } catch (error) {
     console.error('[Skill Verify] Process request error:', error);
-    return res.status(500).json({ error: 'Failed to process verification request' });
+    return res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to process verification request' });
   }
 }

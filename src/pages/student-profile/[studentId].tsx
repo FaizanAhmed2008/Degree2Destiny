@@ -6,6 +6,8 @@ import Chatbot from '../../components/Chatbot';
 import { useAuth } from '../../context/AuthContext';
 import { getStudentProfile } from '../../services/studentService';
 import { StudentProfile } from '../../types';
+import { doc, getDoc, updateDoc, serverTimestamp, collection, setDoc } from 'firebase/firestore';
+import { db } from '../../firebase/firebaseConfig';
 import {
   ResponsiveContainer,
   BarChart,
@@ -26,6 +28,7 @@ const StudentProfilePublicPage = () => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [verifyingSkillId, setVerifyingSkillId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!studentId || typeof studentId !== 'string') return;
@@ -70,6 +73,124 @@ const StudentProfilePublicPage = () => {
       router.replace('/recruiter/dashboard');
     }
   }, [userProfile, profile, router]);
+
+  const handleVerifySkill = async (skillId: string, status: 'verified' | 'rejected') => {
+    if (!currentUser || !profile) return;
+
+    setVerifyingSkillId(skillId);
+    try {
+      const studentRef = doc(db, 'students', profile.uid);
+      const studentDoc = await getDoc(studentRef);
+
+      if (!studentDoc.exists()) {
+        throw new Error('Student record not found');
+      }
+
+      const studentData = studentDoc.data() as StudentProfile;
+      const updatedSkills = (studentData.skills || []).map(skill => {
+        if (skill.id === skillId) {
+          return {
+            ...skill,
+            verificationStatus: status,
+            verifiedBy: currentUser.uid,
+            verifiedAt: new Date(),
+          };
+        }
+        return skill;
+      });
+
+      await updateDoc(studentRef, {
+        skills: updatedSkills,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Create feedback record
+      try {
+        const feedbackRef = doc(collection(db, 'professorFeedback'));
+        await setDoc(feedbackRef, {
+          id: feedbackRef.id,
+          studentId: profile.uid,
+          professorId: currentUser.uid,
+          skillId,
+          verificationStatus: status,
+          createdAt: serverTimestamp(),
+          aiAssisted: false,
+        });
+      } catch (err) {
+        console.warn('Failed to create feedback record:', err);
+      }
+
+      // Reload profile
+      const updatedProfile = await getStudentProfile(profile.uid);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+
+      alert(`Skill ${status === 'verified' ? 'verified' : 'rejected'} successfully!`);
+    } catch (error: any) {
+      console.error('Error verifying skill:', error);
+      alert(`Failed to verify skill: ${error.message || 'Please try again.'}`);
+    } finally {
+      setVerifyingSkillId(null);
+    }
+  };
+
+  const handleRequestSkillVerification = async (skillId: string) => {
+    if (!currentUser || !profile) return;
+
+    setVerifyingSkillId(skillId);
+    try {
+      const skill = profile.skills?.find(s => s.id === skillId);
+      if (!skill) {
+        throw new Error('Skill not found');
+      }
+
+      // Send verification request via API
+      const response = await fetch('/api/skills/verify-request?action=send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentId: profile.uid,
+          skillId,
+          skillName: skill.name,
+          skillLevel: skill.selfLevel,
+          score: skill.score,
+          proofLinks: skill.proofLinks,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to send verification request');
+      }
+
+      // Update skill status to pending in the UI
+      const studentRef = doc(db, 'students', profile.uid);
+      const updatedSkills = profile.skills.map(s => 
+        s.id === skillId 
+          ? { ...s, verificationStatus: 'pending' as const, requestedAt: new Date() }
+          : s
+      );
+      
+      await updateDoc(studentRef, {
+        skills: updatedSkills,
+        updatedAt: serverTimestamp(),
+      });
+
+      // Reload profile
+      const updatedProfile = await getStudentProfile(profile.uid);
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+      }
+
+      alert('Verification request sent to professors!');
+    } catch (error: any) {
+      console.error('Error requesting skill verification:', error);
+      alert(`Failed to request verification: ${error.message || 'Please try again.'}`);
+    } finally {
+      setVerifyingSkillId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -286,20 +407,47 @@ const StudentProfilePublicPage = () => {
                     {profile.skills.map((skill) => (
                       <div
                         key={skill.id}
-                        className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700 px-3 py-2"
+                        className="flex items-center justify-between rounded-lg bg-gray-50 dark:bg-gray-700 px-4 py-3"
                       >
-                        <div>
+                        <div className="flex-1">
                           <p className="text-sm font-medium text-gray-900 dark:text-white">
                             {skill.name}
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {skill.category} • {skill.verificationStatus === 'verified' ? '✓ Verified' : skill.verificationStatus === 'rejected' ? '✗ Rejected' : '⏳ Not Verified'}
+                            {skill.category} • {skill.verificationStatus === 'verified' ? '✓ Verified' : skill.verificationStatus === 'rejected' ? '✗ Rejected' : skill.verificationStatus === 'pending' ? '⏳ Pending' : 'Not Verified'}
                           </p>
                         </div>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-3">
                           <span className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
                             {skill.score}%
                           </span>
+                          {userProfile?.role === 'professor' && skill.verificationStatus === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleVerifySkill(skill.id, 'verified')}
+                                disabled={verifyingSkillId === skill.id}
+                                className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 disabled:opacity-50"
+                              >
+                                {verifyingSkillId === skill.id ? 'Verifying...' : 'Verify'}
+                              </button>
+                              <button
+                                onClick={() => handleVerifySkill(skill.id, 'rejected')}
+                                disabled={verifyingSkillId === skill.id}
+                                className="px-3 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700 disabled:opacity-50"
+                              >
+                                {verifyingSkillId === skill.id ? 'Processing...' : 'Reject'}
+                              </button>
+                            </div>
+                          )}
+                          {userProfile?.role === 'student' && skill.verificationStatus === 'not-requested' && (
+                            <button
+                              onClick={() => handleRequestSkillVerification(skill.id)}
+                              disabled={verifyingSkillId === skill.id}
+                              className="px-3 py-1 bg-indigo-600 text-white rounded text-xs hover:bg-indigo-700 disabled:opacity-50"
+                            >
+                              {verifyingSkillId === skill.id ? 'Requesting...' : 'Request'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
