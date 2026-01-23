@@ -4,9 +4,9 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -44,7 +44,8 @@ body {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0px);
   }
   50% {
@@ -53,7 +54,8 @@ body {
 }
 
 @keyframes pulse-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
   }
   50% {
@@ -104,7 +106,7 @@ html {
   html {
     scroll-behavior: smooth;
   }
-  
+
   * {
     scroll-behavior: inherit;
   }
@@ -176,6 +178,12 @@ html {
   }
 }
 
+/* Logo scaling utility - 200% increase */
+.scale-120 {
+  transform: scale(3);
+  transform-origin: center;
+}
+
 /* Logo styling for consistent rendering */
 img[src="/logo.svg"] {
   filter: brightness(1);
@@ -189,17 +197,22 @@ img[src="/logo.svg"] {
 /* Ensure proper contrast for all interactive elements */
 button:focus-visible,
 a:focus-visible {
-  outline: 2px solid #4F46E5;
+  outline: 2px solid #4f46e5;
   outline-offset: 2px;
 }
 
 .dark button:focus-visible,
 .dark a:focus-visible {
-  outline-color: #818CF8;
+  outline-color: #818cf8;
 }
 
 /* Improve text rendering */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-weight: 700;
   letter-spacing: -0.025em;
 }

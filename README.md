@@ -7,6 +7,7 @@ AI-powered platform connecting students, professors, and recruiters. Built with 
 Degree2Destiny helps students develop skills, get verified by mentors, and connect with career opportunities through AI-powered assessments and real-world challenges.
 
 **Three Roles:**
+
 - Students: Skill development and career readiness
 - Professors: Verify student skills with feedback
 - Recruiters: Discover and interview qualified candidates
@@ -14,6 +15,7 @@ Degree2Destiny helps students develop skills, get verified by mentors, and conne
 ## Quick Start
 
 ### Prerequisites
+
 - Node.js 18+
 - Firebase project
 - Google Gemini API key
@@ -29,6 +31,7 @@ npm install
 ### Environment Setup
 
 Create `.env.local`:
+
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=your_key
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_domain
@@ -85,6 +88,7 @@ We welcome contributions! Here's how to get started:
 5. **Open** a Pull Request
 
 ### Guidelines
+
 - Follow TypeScript and React best practices
 - Write clean, documented code
 - Add tests for new features
@@ -92,6 +96,7 @@ We welcome contributions! Here's how to get started:
 - Match existing code style
 
 ### Contribution Areas
+
 - Bug fixes and improvements
 - New features (video interviews, certifications, etc.)
 - Documentation and examples
@@ -100,7 +105,9 @@ We welcome contributions! Here's how to get started:
 - Test coverage
 
 ### Report Issues
+
 Open an issue with:
+
 - Clear problem description
 - Steps to reproduce
 - Expected vs actual behavior

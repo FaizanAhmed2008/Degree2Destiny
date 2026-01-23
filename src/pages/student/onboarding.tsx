@@ -19,16 +19,19 @@
 // - `displayName` is derived from `fullName` to keep existing UI compatible.
 // - Student-level `verificationStatus` is used later to gate HR visibility.
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/router';
-import ProtectedRoute from '../../components/ProtectedRoute';
-import Navbar from '../../components/Navbar';
-import { useAuth } from '../../context/AuthContext';
-import { getStudentProfile, saveStudentProfile } from '../../services/studentService';
-import { createInitialAssessment } from '../../services/initialAssessmentService';
-import { StudentProfile } from '../../types';
-import { db } from '../../firebase/firebaseConfig';
-import { doc, updateDoc } from 'firebase/firestore';
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/router";
+import ProtectedRoute from "../../components/ProtectedRoute";
+import Navbar from "../../components/Navbar";
+import { useAuth } from "../../context/AuthContext";
+import {
+  getStudentProfile,
+  saveStudentProfile,
+} from "../../services/studentService";
+import { createInitialAssessment } from "../../services/initialAssessmentService";
+import { StudentProfile } from "../../types";
+import { db } from "../../firebase/firebaseConfig";
+import { doc, updateDoc } from "firebase/firestore";
 
 type RegistrationFormState = {
   fullName: string;
@@ -36,7 +39,15 @@ type RegistrationFormState = {
   phoneWhatsApp: string;
   college: string;
   interestedRoleSkill: string;
+  selectedJobRole: string; // MANDATORY: job role dropdown
 };
+
+// Supported job roles for role-based question filtering
+const JOB_ROLES = [
+  "Data Analyst",
+  "Cyber Security Engineer",
+  "Full Stack Developer",
+];
 
 const StudentOnboarding = () => {
   const { currentUser } = useAuth();
@@ -47,11 +58,12 @@ const StudentOnboarding = () => {
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<RegistrationFormState>({
-    fullName: '',
-    email: '',
-    phoneWhatsApp: '',
-    college: '',
-    interestedRoleSkill: '',
+    fullName: "",
+    email: "",
+    phoneWhatsApp: "",
+    college: "",
+    interestedRoleSkill: "",
+    selectedJobRole: "", // Mandatory job role selection
   });
 
   useEffect(() => {
@@ -61,20 +73,21 @@ const StudentOnboarding = () => {
         const profile = await getStudentProfile(currentUser.uid);
         if (profile) {
           setForm({
-            fullName: profile.fullName || profile.displayName || '',
-            email: profile.email || currentUser.email || '',
-            phoneWhatsApp: profile.phoneWhatsApp || '',
-            college: profile.college || '',
-            interestedRoleSkill: profile.interestedRoleSkill || '',
+            fullName: profile.fullName || profile.displayName || "",
+            email: profile.email || currentUser.email || "",
+            phoneWhatsApp: profile.phoneWhatsApp || "",
+            college: profile.college || "",
+            interestedRoleSkill: profile.interestedRoleSkill || "",
+            selectedJobRole: profile.preferredRoles?.[0] || "", // Load from preferredRoles
           });
         } else {
           setForm((prev) => ({
             ...prev,
-            email: currentUser.email || '',
+            email: currentUser.email || "",
           }));
         }
       } catch (e) {
-        console.error('Error loading student registration:', e);
+        console.error("Error loading student registration:", e);
       } finally {
         setLoading(false);
       }
@@ -89,12 +102,14 @@ const StudentOnboarding = () => {
     const phoneWhatsApp = form.phoneWhatsApp.trim();
     const college = form.college.trim();
     const interestedRoleSkill = form.interestedRoleSkill.trim();
+    const selectedJobRole = form.selectedJobRole.trim();
 
-    if (!fullName) return 'Full Name is required.';
-    if (!email) return 'Email is required.';
-    if (!phoneWhatsApp) return 'Phone / WhatsApp is required.';
-    if (!college) return 'College is required.';
-    if (!interestedRoleSkill) return 'Interested Role / Skill is required.';
+    if (!fullName) return "Full Name is required.";
+    if (!email) return "Email is required.";
+    if (!phoneWhatsApp) return "Phone / WhatsApp is required.";
+    if (!college) return "College is required.";
+    if (!interestedRoleSkill) return "Interested Role / Skill is required.";
+    if (!selectedJobRole) return "Job Role selection is required."; // MANDATORY job role
     return null;
   }, [form]);
 
@@ -114,27 +129,29 @@ const StudentOnboarding = () => {
         fullName: form.fullName.trim(),
         phoneWhatsApp: form.phoneWhatsApp.trim(),
         college: form.college.trim(),
-        interestedRoleSkill: form.interestedRoleSkill.trim(),
-        // Backward-compatible:
+        interestedRoleSkill: form.interestedRoleSkill.trim(), // Mandatory job role - now stored as preferredRoles
+        preferredRoles: [form.selectedJobRole.trim()], // Backward-compatible:
         displayName: form.fullName.trim(),
         // Mandatory gating:
         registrationCompleted: true,
         onboardingCompleted: true,
         // Default student verification gate for HR:
-        verificationStatus: 'pending',
+        verificationStatus: "pending",
       };
 
       await saveStudentProfile(payload);
 
       // Keep AuthContext/user menus consistent.
-      await updateDoc(doc(db, 'users', currentUser.uid), { displayName: payload.displayName });
+      await updateDoc(doc(db, "users", currentUser.uid), {
+        displayName: payload.displayName,
+      });
 
       // Create initial assessment and redirect to it
       const assessmentId = await createInitialAssessment(currentUser.uid);
       router.push(`/student/initial-assessment/${assessmentId}`);
     } catch (e) {
-      console.error('Error saving student registration:', e);
-      setError('Failed to save registration. Please try again.');
+      console.error("Error saving student registration:", e);
+      setError("Failed to save registration. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -145,14 +162,16 @@ const StudentOnboarding = () => {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar />
         <div className="flex items-center justify-center h-screen">
-          <div className="text-lg text-gray-900 dark:text-white">Loading...</div>
+          <div className="text-lg text-gray-900 dark:text-white">
+            Loading...
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <ProtectedRoute allowedRoles={['student']}>
+    <ProtectedRoute allowedRoles={["student"]}>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <Navbar />
 
@@ -202,11 +221,21 @@ const StudentOnboarding = () => {
                 onChange={(v) => setForm((p) => ({ ...p, college: v }))}
                 placeholder="Your college name"
               />
+              <FieldSelect
+                label="Job Role"
+                required
+                value={form.selectedJobRole}
+                onChange={(v) => setForm((p) => ({ ...p, selectedJobRole: v }))}
+                options={JOB_ROLES}
+                placeholder="Select your target job role"
+              />
               <Field
                 label="Interested Role / Skill"
                 required
                 value={form.interestedRoleSkill}
-                onChange={(v) => setForm((p) => ({ ...p, interestedRoleSkill: v }))}
+                onChange={(v) =>
+                  setForm((p) => ({ ...p, interestedRoleSkill: v }))
+                }
                 placeholder="e.g., Frontend Developer / React"
               />
             </div>
@@ -217,7 +246,7 @@ const StudentOnboarding = () => {
                 disabled={saving}
                 className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {saving ? 'Saving...' : 'Save & Continue'}
+                {saving ? "Saving..." : "Save & Continue"}
               </button>
             </div>
 
@@ -240,7 +269,7 @@ const Field: React.FC<{
   onChange: (value: string) => void;
   placeholder?: string;
   type?: string;
-}> = ({ label, required, value, onChange, placeholder, type = 'text' }) => {
+}> = ({ label, required, value, onChange, placeholder, type = "text" }) => {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -257,5 +286,33 @@ const Field: React.FC<{
   );
 };
 
-export default StudentOnboarding;
+const FieldSelect: React.FC<{
+  label: string;
+  required?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  placeholder?: string;
+}> = ({ label, required, value, onChange, options, placeholder }) => {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        {label} {required && <span className="text-red-600">*</span>}
+      </label>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-indigo-600"
+      >
+        <option value="">{placeholder || "Select an option"}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
+export default StudentOnboarding;
